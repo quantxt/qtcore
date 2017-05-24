@@ -21,7 +21,7 @@ abstract public class QTDocument {
 
 	final private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	final private static DateFormat dateOnlyFormat = new SimpleDateFormat("yyyy/MM/dd");
-	public enum DOCTYPE {Headline, Phrase}
+	public enum DOCTYPE {Headline, Action, Statement}
 
 	private static Gson gson = new Gson();
 	private static Logger logger = LoggerFactory.getLogger(QTDocument.class);
