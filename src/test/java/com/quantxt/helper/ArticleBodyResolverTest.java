@@ -45,7 +45,7 @@ public class ArticleBodyResolverTest {
         //https://www.nytimes.com/2017/04/11/technology/personaltech/a-hangout-for-old-desktop-notifications.html
         ArticleBodyResolver abr = getABR( "/nytime-a-hangout.html");
         //    assertEquals(abr.getNodeCss(), "#article-body > article");
-        assertTrue(abr.getText().get(0).text().startsWith("Several websites and programs"));
+        assertTrue(abr.getText().get(0).text().startsWith("Q. Several websites and programs"));
     }
 
     @Test
@@ -71,7 +71,7 @@ public class ArticleBodyResolverTest {
         assertEquals(abr.getNodeCss(), "#rcs-articleContent > div.column1.col.col-10");
         //must be this!
         //     assertEquals(abr.getNodeCss(), "#article-text");
-        assertTrue(abr.getText().get(0).text().startsWith("Shares of Tesla () jumped nearly 3"));
+        assertTrue(abr.getText().get(0).text().startsWith("SAN FRANCISCO Shares of Tesla (TSLA.O) jumped nearly 3 percent"));
     }
 
 
@@ -82,7 +82,7 @@ public class ArticleBodyResolverTest {
         assertEquals(abr.getNodeCss(), "#rcs-articleContent > div.column1.col.col-10");
         //must be this!
   //     assertEquals(abr.getNodeCss(), "#article-text");
-        assertTrue(abr.getText().get(0).text().startsWith("Russia and Iran have pledged to continue efforts to rein"));
+        assertTrue(abr.getText().get(0).text().startsWith("MOSCOW Russia and Iran have pledged to continue efforts"));
     }
 
     @Test

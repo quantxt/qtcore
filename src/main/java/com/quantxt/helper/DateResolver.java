@@ -51,16 +51,17 @@ public class DateResolver {
     private static DateTimeFormatter DATE_STR_FORMATTER = DateTimeFormat.forPattern( "yyyy-MM-dd");
 
     private static DateTimeParser[] date_and_time_parsers = {
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm").getParser(),
             DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm:ss").getParser(),
             DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm:ss.SSSZ").getParser(),
             DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm:ssZ").getParser(),
             DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm:ss z").getParser(),
             DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm:ssz").getParser(),
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mmZ").getParser(),
             DateTimeFormat.forPattern( "yyyy-MM-dd hh:mm a z").getParser(),
             DateTimeFormat.forPattern( "yyyy-MM-dd hh:mm a").getParser(),
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm z").getParser()
+
+            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm").getParser(),
+            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm z").getParser(),
+            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mmZ").getParser(),
     };
 
     private static DateTimeParser[] date_parsers = {
@@ -88,6 +89,14 @@ public class DateResolver {
     }
 
     public static DateTime resolveDate(Document doc) {
+        DateTime date = resolveDateHelper(doc);
+        if (date != null){
+            date = date.withZone(DateTimeZone.UTC);
+        }
+        return date;
+    }
+
+    private static DateTime resolveDateHelper(Document doc) {
         DateTime date;
         // get the earliest date when pasre the attributes
         // but after the title!
@@ -98,13 +107,35 @@ public class DateResolver {
         List<Element> beforeTitle = new ArrayList<>();
         if (titleMatching != null){
             for (Element matchingElem : titleMatching) {
+                int matchedLevel = ArticleBodyResolver.getLevel(matchingElem);
+                int levelLowRange = matchedLevel - 2;
+                int levelHighRange = matchedLevel + 4;
                 for (int i = 0; i < elements.size(); i++) {
                     Element e = elements.get(i);
                     if (!e.equals(matchingElem)) continue;
-                    int indexBefore = Math.max(0, i - 10);
-                    int indexAfter = Math.min(elements.size(), i + 100);
-                    beforeTitle.addAll(elements.subList(indexBefore, i));
-                    afterTitle.addAll(elements.subList(i, indexAfter));
+      //              int indexBefore = Math.max(0, i - 10);
+      //              int indexAfter = Math.min(elements.size(), i + 100);
+                    int numAdded = 0;
+                    int index = i-1;
+                    while (numAdded < 10 && index>=0){
+                        Element eb = elements.get(index--);
+                        int level = ArticleBodyResolver.getLevel(eb);
+                        if (level > levelHighRange || level < levelLowRange) continue;
+                        numAdded++;
+                        beforeTitle.add(eb);
+                    }
+                    numAdded = 0;
+                    index = i-1;
+                    while (numAdded < 100 && index < elements.size()){
+                        Element eb = elements.get(index++);
+                        int level = ArticleBodyResolver.getLevel(eb);
+              //          logger.info(level + " : " + eb.text());
+                        if (level > levelHighRange || level < levelLowRange) continue;
+                        numAdded++;
+                        afterTitle.add(eb);
+                    }
+   //                 beforeTitle.addAll(elements.subList(indexBefore, i));
+   //                 afterTitle.addAll(elements.subList(i, indexAfter));
                     break;
                 }
             }
@@ -142,7 +173,7 @@ public class DateResolver {
                 if (text == null) continue;
                 date = findDate(text);
                 if (date != null) {
-        //            logger.info(element.cssSelector() + " " + attr + " " + text);
+         //           logger.info(element.cssSelector() + " " + attr + " " + text);
                     return date;
                 }
             }
@@ -246,31 +277,23 @@ public class DateResolver {
 
     private static DateTime findDate(List<Element> elements){
         List<DateResolver> allDates = new ArrayList<>();
-//        for (Map.Entry<Pattern, int[]> e : DATE_PATTERN_MAP.entrySet()) {
-//            Pattern p = e.getKey();
-//            for (Element elem : elements){
-//                String t = elem.ownText();
-//            }
-//            if (elems == null || elems.size() == 0) continue;
-            for (int i=0; i <elements.size(); i++) {
-                Element elem = elements.get(i);
-                String date_string = elem.ownText();
-                if (date_string == null || date_string.isEmpty()) continue;
-       //         logger.info(date_string);
-                for (Map.Entry<Pattern, int[]> e : DATE_PATTERN_MAP.entrySet()) {
-                    Pattern p = e.getKey();
-                    Matcher m = p.matcher(date_string);
-                    if (m.find()) {
-                        DateResolver dr = normalizeDateStr(date_string, m, e.getValue());
-                        if (dr == null) continue;
-                        dr.textLength = date_string.length();
-            //            dr.pos = Math.min(i + 1, elements.size() - i + 1);
-                        dr.pos = i;
-                        allDates.add(dr);
-                    }
+        for (int i=0; i <elements.size(); i++) {
+            Element elem = elements.get(i);
+            String date_string = elem.ownText();
+            if (date_string == null || date_string.isEmpty()) continue;
+   //         logger.info(date_string);
+            for (Map.Entry<Pattern, int[]> e : DATE_PATTERN_MAP.entrySet()) {
+                Pattern p = e.getKey();
+                Matcher m = p.matcher(date_string);
+                if (m.find()) {
+                    DateResolver dr = normalizeDateStr(date_string, m, e.getValue());
+                    if (dr == null) continue;
+                    dr.textLength = date_string.length();
+                    dr.pos = i;
+                    allDates.add(dr);
                 }
             }
-   //     }
+        }
         if (allDates.size() == 0) {
             return null;
         }
@@ -278,9 +301,10 @@ public class DateResolver {
     }
 
     public static void main(String[] args) throws Exception {
-
-        Document doc = Jsoup.connect("http://www.reuters.com/article/uk-banks-trading-q-idUSKBN18J36Q").get();
+        String link = "https://insurancenewsnet.com/oarticle/u-s-senator-tammy-baldwin-to-president-trump-on-proposed-medicaid-cuts-americas-veterans-deserve-better";
+        Document doc = Jsoup.connect(link).get();
         DateTime dt =  DateResolver.resolveDate(doc);
         logger.info("date: " + dt);
+        logger.info("date: " + dt.withZone(DateTimeZone.UTC));
     }
 }

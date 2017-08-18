@@ -12,7 +12,7 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-abstract public class QTDocument {
+public class QTDocument {
 
 	public enum Language
 	{
@@ -29,7 +29,7 @@ abstract public class QTDocument {
 	protected String title;
 	protected String englishTitle;
 	protected String body;
-	protected String language;
+	protected Language language;
 	protected List<String> sentences;
 	protected String excerpt;
 
@@ -44,6 +44,7 @@ abstract public class QTDocument {
 	private Set<String> tags = new HashSet<>();
 	private List<Fact> facts = new ArrayList<>();
 	private DOCTYPE docType;
+	private String entity;
 
 	protected Set<String> locations;
 	protected Set<String> persons;
@@ -51,9 +52,10 @@ abstract public class QTDocument {
 
 
 	public QTDocument(String b, String t){
-		body = b.replaceAll("([\\\n\\\r])"," $1");
-		title = t;
-		title = title.replaceAll("[\\\n\\\r\\\t]","");
+		if (b != null) {
+			body = b.replaceAll("([\\\n\\\r])", " $1");
+		}
+		title = t.replaceAll("[\\\n\\\r\\\t]","");
 	}
 
 	// Getters
@@ -69,7 +71,7 @@ abstract public class QTDocument {
 		return persons;
 	}
 
-	public String getLanguage(){
+	public Language getLanguage(){
 		return language;
 	}
 
@@ -120,10 +122,39 @@ abstract public class QTDocument {
 		return sentences;
 	}
 
+	public double[] getVectorizedTitle(QTExtract extract){
+		//sub-class should implement this
+		return null;
+	}
+
 	//interface to process document
-	public abstract void processDoc();
-	public abstract String Translate(String text, Language inLang, Language outLang);
-	public abstract boolean isStatement(String s);
+	public void processDoc(){
+		//sub-class should implement this
+	}
+	public String Translate(String text, Language inLang, Language outLang){
+		//sub-class should implement this
+		return null;
+	}
+	public boolean isStatement(String s){
+		//sub-class should implement this
+		return false;
+	}
+
+	public String normalize(String str){
+		//sub-class should implement this
+		return str;
+	}
+
+	public String [] getPosTags(String [] text)
+	{
+		//sub-class should implement this
+		return null;
+	}
+
+	public ArrayList<QTDocument> extractEntityMentions(QTExtract extract) {
+		//sub-class should implement this
+		return null;
+	}
 
 	protected void setExcerpt(String s){
 		excerpt = s;
@@ -143,6 +174,8 @@ abstract public class QTDocument {
 	public void addTags (List<String> taglist){
 		tags.addAll(taglist);
 	}
+
+	public String getEntity(){return entity;}
 
 	public void addTag (String tag){
 		tags.add(tag);
@@ -188,7 +221,7 @@ abstract public class QTDocument {
 		}
 		organizations.add(o);
 	}
-	
+
 	public void setLink (String l){
 		link = l;
 	}
@@ -197,9 +230,11 @@ abstract public class QTDocument {
 		author = a;
 	}
 
-	public void setLanguage(String l){
+	public void setLanguage(Language l){
 		language = l;
 	}
+
+	public void setEntity(String e){entity = e;}
 
 
 	public String getWPDocument(){

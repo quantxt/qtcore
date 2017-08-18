@@ -1,19 +1,14 @@
 package com.quantxt.helper;
 
-import com.google.gson.Gson;
 import com.quantxt.types.MapSort;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Attributes;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.parser.Tag;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by matin on 3/26/17.
@@ -22,8 +17,7 @@ public class ArticleBodyResolver {
 
     private static Logger logger = LoggerFactory.getLogger(ArticleBodyResolver.class);
 
-    private static Set<String> NO_TEXT_TAGS = new HashSet<>(Arrays.asList("h1" , "caption", "cite", "h2", "audio" ,"script", "nav", "iframe", "embed", "footer", "form", "figcaption", "img", "video" , "figure"));
-    private static Set<String> TEXT_TAGS = new HashSet<>(Arrays.asList("a", "p", "div" , "em" , "b" , "blockquote"));
+    public static Set<String> NO_TEXT_TAGS = new HashSet<>(Arrays.asList("h1" , "caption", "cite", "h2", "audio" ,"script", "nav", "iframe", "embed", "footer", "form", "figcaption", "img", "video" , "figure"));
 
     private Document doc;
     private int totoalWords = 0;
@@ -161,7 +155,7 @@ public class ArticleBodyResolver {
         }
     }
 
-    private int getLevel(Element e){
+    public static int getLevel(Element e){
         int level = 0;
         Element parent = e.parent();
         while (parent != null){
@@ -366,14 +360,20 @@ public class ArticleBodyResolver {
         for (Element articleNode : articleNodes) {
             for (Element e : articleNode.getAllElements()) {
                 String elementStr = getElementStr(e);
+                String eText = e.text();
+                eText = eText.replace("\u00A0", "").trim();
                 if (elementStr.length() != 0) {
                     if (elementStr.equals(bestTagStr)) {
                         for (Element child : e.getAllElements()) {
                             String tag = child.tagName();
-                            if (TEXT_TAGS.contains(tag)) continue;
-                            child.remove();
+                            String text = child.ownText();
+                            if (text.isEmpty()){
+                                child.remove();
+                            }
+//                            if (TEXT_TAGS.contains(tag)) continue;
+//                            child.remove();
                         }
-                        if (e.text() == null || e.text().trim().isEmpty()) continue;
+                        if (eText.isEmpty()) continue;
                         goodElems.add(e);
                     }
                 } else {
@@ -384,10 +384,14 @@ public class ArticleBodyResolver {
                         if (elementStr.equals(bestTagStr)) {
                             for (Element child : e.getAllElements()) {
                                 String tag = child.tagName();
-                                if (TEXT_TAGS.contains(tag)) continue;
-                                child.remove();
+                                String text = child.ownText();
+                                if (text.isEmpty()){
+                                    child.remove();
+                                }
+//                                if (TEXT_TAGS.contains(tag)) continue;
+//                                child.remove();
                             }
-                            if (e.text() == null || e.text().trim().isEmpty()) continue;
+                            if (eText.isEmpty()) continue;
                             goodElems.add(e);
                         }
                     }
@@ -504,7 +508,7 @@ public class ArticleBodyResolver {
         String [] urls = {
      //           "http://www.dailymail.co.uk/news/article-4356348/Carlos-Jackal-awaiting-verdict-Paris-court.html"
      //           "http://www.nasdaq.com/article/china-stocksfactors-to-watch-on-tuesday-20170327-01268"
-                "http://www.cnbc.com/2017/03/28/apple-iphone-suppliers-outlook-jpmorgan.html"
+                "http://milwaukeecourieronline.com/index.php/2017/05/27/u-s-senator-tammy-baldwin-statement-on-cbo-score-of-house-passed-health-care-bill/"
                 //truncated
                 //  "https://www.nytimes.com/2017/03/29/world/asia/china-taiwan-activist-lee-ming-cheh.html"
                 // "http://www.cnn.com/2017/03/29/politics/senate-filibuster-neil-gorsuch/index.html"
@@ -522,13 +526,11 @@ public class ArticleBodyResolver {
             try {
                 Document doc = Jsoup.connect(u).get();
                 ArticleBodyResolver abr = new ArticleBodyResolver(doc);
-                abr.analyze();
-                StringBuilder sb = new StringBuilder();
-                for (Element e : abr.extractions){
-                    sb.append(e.text());
+                abr.analyze3();
+                List<Element> elems = abr.getText();
+                for (Element e : elems) {
+                    logger.info(e.cssSelector() + " / " + e.text());
                 }
-
-                logger.info(sb.toString().split("\\s+").length + " | " + sb.toString());
             } catch (Exception e){
                 logger.error("Error: " +e);
             }
