@@ -113,7 +113,7 @@ public class BWTransform {
     // if args[0] is '-', apply Burrows-Wheeler encoding
     // if args[0] is '+', apply Burrows-Wheeler decoding
     public static void main(String[] args) {
-        String str = "https://github.com/fujiawu/burrows-wheeler-compression/blob/master/BurrowsWheeler.java";
+        String str = "Hurricane Irma, now a Category 3 storm, slowly turns to Florida";
         str = str.toLowerCase().replaceAll("[^a-z]+" , "");
         BWTransform bw = new BWTransform(str);
         bw.encode();

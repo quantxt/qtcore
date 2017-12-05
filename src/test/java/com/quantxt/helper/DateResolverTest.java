@@ -103,6 +103,15 @@ public class DateResolverTest {
     }
 
     @Test
+    public void reuters_3(){
+        //http://www.reuters.com/article/brief-japan-post-bank-receives-approval/brief-japan-post-bank-receives-approval-regarding-development-of-new-business-idUSL3N1JG1WY
+        DateTime ed = new DateTime("2017-06-19T04:05:00.000-04:00").withZone(DateTimeZone.UTC);
+        Document doc = getDocument("/japan_post_bank.html");
+        DateTime date = DateResolver.resolveDate(doc);
+        assertTrue("Expected " + ed + " but was " + date, date.equals(ed));
+    }
+
+    @Test
     public void cnbc_1() {
         //http://www.cnbc.com/2017/03/28/apple-iphone-suppliers-outlook-jpmorgan.html
         DateTime ed = new DateTime("2017-03-28T23:25:55.000-04:00").withZone(DateTimeZone.UTC);

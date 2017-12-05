@@ -51,17 +51,17 @@ public class DateResolver {
     private static DateTimeFormatter DATE_STR_FORMATTER = DateTimeFormat.forPattern( "yyyy-MM-dd");
 
     private static DateTimeParser[] date_and_time_parsers = {
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm:ss").getParser(),
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm:ss.SSSZ").getParser(),
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm:ssZ").getParser(),
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm:ss z").getParser(),
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm:ssz").getParser(),
-            DateTimeFormat.forPattern( "yyyy-MM-dd hh:mm a z").getParser(),
-            DateTimeFormat.forPattern( "yyyy-MM-dd hh:mm a").getParser(),
+            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss").getParser(),
+            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSZ").getParser(),
+            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZ").getParser(),
+            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss z").getParser(),
+            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssz").getParser(),
+            DateTimeFormat.forPattern("yyyy-MM-dd hh:mm a z").getParser(),
+            DateTimeFormat.forPattern("yyyy-MM-dd hh:mm a").getParser(),
 
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm").getParser(),
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mm z").getParser(),
-            DateTimeFormat.forPattern( "yyyy-MM-dd HH:mmZ").getParser(),
+            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm").getParser(),
+            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm z").getParser(),
+            DateTimeFormat.forPattern("yyyy-MM-dd HH:mmZ").getParser(),
     };
 
     private static DateTimeParser[] date_parsers = {
@@ -194,6 +194,10 @@ public class DateResolver {
         date = findDate(date_str);
     }
 
+    public static DateTime resolveDateStr(String date_str) {
+        return findDate(date_str);
+    }
+
     private static DateResolver normalizeDateStr(String date_string,
                                       Matcher m,
                                       int [] vals)
@@ -220,7 +224,7 @@ public class DateResolver {
         date_corrected_str = date_corrected_str.replaceAll("\\s+at\\s+" , " ");
         date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s+\\-" , "$1\\-");
         date_corrected_str = date_corrected_str.replace("CT" , "CST");
-        date_corrected_str = date_corrected_str.replaceAll("(\\d+)(am|pm|AM|PM)", "$1 $2");
+        date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s*(am|pm|AM|PM)\\s+(UTC|EST|PST|CST|MST)?.*$", "$1 $2 $3");
         // this is ba rule from here : http://giftedviz.com/2017/05/17/bank-of-england-holds-rates-in-7-1-vote/
         // 17 May 2017, 10:58 | Darnell Patrick
         date_corrected_str = date_corrected_str.replaceAll("\\|\\s+.*$", "");

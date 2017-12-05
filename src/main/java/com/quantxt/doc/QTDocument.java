@@ -7,7 +7,7 @@ import java.util.*;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
-import com.quantxt.types.Fact;
+import com.quantxt.types.NamedEntity;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +21,9 @@ public class QTDocument {
 
 	final private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	final private static DateFormat dateOnlyFormat = new SimpleDateFormat("yyyy/MM/dd");
-	public enum DOCTYPE {Headline, Action, Statement}
+	public enum DOCTYPE {Headline, Action, Statement, Aux, Speculation,
+		Legal, Acquisition, Production, Partnership, Employment
+	}
 
 	private static Gson gson = new Gson();
 	private static Logger logger = LoggerFactory.getLogger(QTDocument.class);
@@ -35,6 +37,7 @@ public class QTDocument {
 
 	private DateTime date;
 	private String link;
+	private double score;
 	private String source;
 	private String author;
 	private String logo;
@@ -42,9 +45,9 @@ public class QTDocument {
 	private Set<String> categories;
 	private Set<String> sub_categories;
 	private Set<String> tags = new HashSet<>();
-	private List<Fact> facts = new ArrayList<>();
+	private Map<String, Object> facts;
 	private DOCTYPE docType;
-	private String entity;
+	private Map<String, LinkedHashSet<String>> entity;
 
 	protected Set<String> locations;
 	protected Set<String> persons;
@@ -56,6 +59,18 @@ public class QTDocument {
 			body = b.replaceAll("([\\\n\\\r])", " $1");
 		}
 		title = t.replaceAll("[\\\n\\\r\\\t]","");
+	}
+
+	protected QTDocument getQuoteDoc(String quote)
+	{
+		QTDocument sDoc = new QTDocument("", quote);
+		sDoc.setDate(getDate());
+		sDoc.setLink(getLink());
+		sDoc.setLogo(getLogo());
+		sDoc.setSource(getSource());
+		sDoc.setLanguage(getLanguage());
+
+		return sDoc;
 	}
 
 	// Getters
@@ -93,9 +108,13 @@ public class QTDocument {
 
 	public String getLogo(){return logo;}
 
+	public double getScore(){return score;}
+
 	public String getSource(){return source;}
 
 	public String getId() {return id;}
+
+	public DOCTYPE getDocType(){return docType;}
 
 	public Set<String> getTags(){ return tags;}
 
@@ -114,7 +133,7 @@ public class QTDocument {
 
 	public String getAuthor() {return author;}
 
-	public List<Fact> getKey_values(){return facts;}
+	public Map<String, Object> getKey_values(){return facts;}
 
 	public DateTime getDate() {return date;}
 
@@ -156,6 +175,10 @@ public class QTDocument {
 		return null;
 	}
 
+	public void setScore(double s){
+		score = s;
+	}
+
 	protected void setExcerpt(String s){
 		excerpt = s;
 	}
@@ -175,7 +198,7 @@ public class QTDocument {
 		tags.addAll(taglist);
 	}
 
-	public String getEntity(){return entity;}
+	public Map<String, LinkedHashSet<String> > getEntity(){return entity;}
 
 	public void addTag (String tag){
 		tags.add(tag);
@@ -199,7 +222,26 @@ public class QTDocument {
 
 	public void setDate(DateTime d){date = d; }
 
-	public void addFacts(String key, Object val){facts.add(new Fact(key, val)); }
+	public void addFacts(String key, Object val){
+		if (facts == null){
+			facts = new HashMap<>();
+		}
+
+		facts.put(key, val);
+	}
+
+	public void setFacts(Map<String, Object> map){
+		if (map == null || map.size() == 0){
+			facts = null;
+			return;
+		}
+
+		if (facts == null){
+			facts = new HashMap<>();
+		}
+
+		facts.putAll(map);
+	}
 
 	public void addPerson(String p){
 		if (persons == null){
@@ -234,8 +276,20 @@ public class QTDocument {
 		language = l;
 	}
 
-	public void setEntity(String e){entity = e;}
-
+	public void addEntity(String t, String e){
+		LinkedHashSet<String> ents;
+		if (entity == null){
+			entity = new HashMap<>();
+			ents = new LinkedHashSet<>();
+		} else {
+			ents = entity.get(t);
+			if (ents == null) {
+				ents = new LinkedHashSet<>();
+			}
+		}
+		ents.add(e);
+		entity.put(t, ents);
+	}
 
 	public String getWPDocument(){
 		String date_str = dateFormat.format(date);
