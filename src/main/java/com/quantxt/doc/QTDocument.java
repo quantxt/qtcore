@@ -1,13 +1,22 @@
 package com.quantxt.doc;
 
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
 
+import com.quantxt.helper.types.ExtInterval;
+import com.quantxt.trie.Emit;
+import com.quantxt.trie.Trie;
+import com.quantxt.types.Entity;
 import com.quantxt.types.NamedEntity;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.snowball.SnowballFilter;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +29,6 @@ public class QTDocument {
 	}
 
 	final private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-	final private static DateFormat dateOnlyFormat = new SimpleDateFormat("yyyy/MM/dd");
 	public enum DOCTYPE {Headline, Action, Statement, Aux, Speculation,
 		Legal, Acquisition, Production, Partnership, Employment
 	}
@@ -29,6 +37,7 @@ public class QTDocument {
 	private static Logger logger = LoggerFactory.getLogger(QTDocument.class);
 
 	protected String title;
+	protected String rawText;
 	protected String englishTitle;
 	protected String body;
 	protected Language language;
@@ -54,12 +63,20 @@ public class QTDocument {
 	protected Set<String> organizations;
 
 
+	protected static String removePrnts(String str){
+		str = str.replaceAll("\\([^\\)]+\\)", " ");
+		str = str.replaceAll("([\\.])+$", " $1");
+		str = str.replaceAll("\\s+", " ");
+		return str;
+	}
+
 	public QTDocument(String b, String t){
 		if (b != null) {
 			body = b.replaceAll("([\\\n\\\r])", " $1");
 		}
 		title = t.replaceAll("[\\\n\\\r\\\t]","");
 	}
+
 
 	protected QTDocument getQuoteDoc(String quote)
 	{
@@ -69,8 +86,17 @@ public class QTDocument {
 		sDoc.setLogo(getLogo());
 		sDoc.setSource(getSource());
 		sDoc.setLanguage(getLanguage());
-
 		return sDoc;
+	}
+
+
+	protected void addBasicPropstoSubDoc(QTDocument reference)
+	{
+		this.language = reference.language;
+		this.date = reference.date;
+		this.link = reference.link;
+		this.logo = reference.logo;
+		this.source = reference.source;
 	}
 
 	// Getters
@@ -122,10 +148,9 @@ public class QTDocument {
 		return categories;
 	}
 
-	public String getDateStr() {
+	public synchronized String getDateStr() {
 		return dateFormat.format(date);
 	}
-
 
 	public void setDocType(DOCTYPE dt){
 		docType = dt;
@@ -142,37 +167,165 @@ public class QTDocument {
 	}
 
 	public double[] getVectorizedTitle(QTExtract extract){
-		//sub-class should implement this
+		//must implement this
 		return null;
 	}
 
-	//interface to process document
 	public void processDoc(){
-		//sub-class should implement this
+		//must implement this
 	}
+
 	public String Translate(String text, Language inLang, Language outLang){
-		//sub-class should implement this
+		//must implement this
 		return null;
 	}
+
 	public boolean isStatement(String s){
-		//sub-class should implement this
+		//must implement this
 		return false;
 	}
 
 	public String normalize(String str){
-		//sub-class should implement this
-		return str;
+		//must implement this
+		return null;
 	}
 
-	public String [] getPosTags(String [] text)
+	public String [] getPosTags(String [] text){
+		//must implement this
+		return null;
+	}
+
+	public HashSet<String> getPronouns(){
+		//must implement this
+		return null;
+	}
+
+	public CharArraySet getStopwords(){
+		//must implement this
+		return null;
+	}
+
+	public Trie getVerbTree(){
+		//must implement this
+		return null;
+	}
+
+	public List<String> tokenize(String str) {
+		return null;
+	}
+
+	private DOCTYPE getVerbType(String verbPhs) {
+
+		List<String> tokens = tokenize(verbPhs);
+		if (tokens.size() == 0) return null;
+
+		Collection<Emit> emits = getVerbTree().parseText(String.join(" ", tokens));
+		for (Emit e : emits) {
+			DOCTYPE vType = (DOCTYPE) e.getCustomeData();
+			if (vType == DOCTYPE.Aux) {
+				if (emits.size() == 1) return null;
+				continue;
+			}
+			return vType;
+		}
+		return null;
+	}
+
+
+	protected List<ExtInterval> getNounAndVerbPhrases(String orig,
+													  String[] parts)
 	{
 		//sub-class should implement this
 		return null;
 	}
 
-	public ArrayList<QTDocument> extractEntityMentions(QTExtract extract) {
-		//sub-class should implement this
-		return null;
+	public ArrayList<QTDocument> extractEntityMentions(QTExtract speaker) {
+		ArrayList<QTDocument> quotes = new ArrayList<>();
+		List<String> sents = getSentences();
+		int numSent = sents.size();
+
+		for (int i = 0; i < numSent; i++)
+		{
+			final String orig = removePrnts(sents.get(i)).trim();
+			final String origBefore = i == 0 ? title : removePrnts(sents.get(i - 1)).trim();
+
+			String rawSent_curr = orig;
+		//	String[] parts = rawSent_curr.split("\\s+");
+			List<String> tokens = tokenize(rawSent_curr);
+			String [] parts = tokens.toArray(new String[tokens.size()]);
+			int numTokens = parts.length;
+			if (numTokens < 6 || numTokens > 80) continue;
+
+/*
+            try {
+                Files.write(Paths.get("snp500.txt"), (orig  +"\n").getBytes(), StandardOpenOption.APPEND);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+*/
+			Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(orig);
+
+			if (name_match_curr.size() == 0) {
+				Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(origBefore);
+				for (Map.Entry<String, Collection<Emit>> entType : name_match_befr.entrySet()) {
+					Collection<Emit> ent_set = entType.getValue();
+					if (ent_set.size() != 1) continue;
+					// simple co-ref for now
+				//	if (parts[0].equalsIgnoreCase("he") || parts[0].equalsIgnoreCase("she")) {
+					if (getPronouns().contains(parts[0])){
+						Emit matchedName = ent_set.iterator().next();
+						String keyword = matchedName.getKeyword();
+						parts[0] = keyword;
+						rawSent_curr = String.join(" ", parts);
+						name_match_curr.put(entType.getKey(), ent_set);
+					}
+				}
+			}
+
+			//if still no emit continue
+			if (name_match_curr.size() == 0) {
+				continue;
+			}
+
+
+			QTDocument newQuote = getQuoteDoc(orig);
+
+			List<ExtInterval> tagged = getNounAndVerbPhrases(rawSent_curr, parts);
+			for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
+				for (Emit matchedName : entType.getValue()) {
+					for (int j = 0; j < tagged.size(); j++) {
+						ExtInterval ext = tagged.get(j);
+						ExtInterval nextExt = (j < tagged.size() - 1) ? tagged.get(j + 1) : null;
+						ExtInterval prevExt = (j > 0) ? tagged.get(j - 1) : null;
+						if (ext.overlapsWith(matchedName) && ext.getType().equals("N")) {
+							//only if this is a noun type and next one is a verb!
+							DOCTYPE verbType = null;
+							if (nextExt != null && nextExt.getType().equals("V")) {
+								verbType = getVerbType(rawSent_curr.substring(nextExt.getStart(), nextExt.getEnd()));
+							} else if (prevExt != null && prevExt.getType().equals("V")) {
+								verbType = getVerbType(rawSent_curr.substring(prevExt.getStart(), prevExt.getEnd()));
+							}
+							NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
+							newQuote.addEntity(entType.getKey(), ne.getName());
+							if (verbType != null) {
+								newQuote.setDocType(verbType);
+							}
+						}
+					}
+				}
+			}
+
+			if (newQuote.getEntity() == null) {
+				logger.debug("Entity is still null or Verb type is not detected: " + orig);
+				continue;
+			}
+
+
+			newQuote.setBody(origBefore + " " + orig);
+			quotes.add(newQuote);
+		}
+
+		return quotes;
 	}
 
 	public void setScore(double s){
@@ -309,5 +462,46 @@ public class QTDocument {
 
 	public String toString(){
 		return gson.toJson(this);
+	}
+
+	public Trie buildVerbTree(final byte[] verbArr) throws IOException {
+		JsonParser parser = new JsonParser();
+		Trie.TrieBuilder verbs = Trie.builder().onlyWholeWords().ignoreCase();
+		JsonElement jsonElement = parser.parse(new String(verbArr, "UTF-8"));
+		JsonObject contextJson = jsonElement.getAsJsonObject();
+		for (Map.Entry<String, JsonElement> entry : contextJson.entrySet()) {
+			String context_key = entry.getKey();
+			DOCTYPE verbTybe = null;
+			switch (context_key) {
+				case "Speculation" : verbTybe = DOCTYPE.Speculation;
+					break;
+				case "Action" : verbTybe = DOCTYPE.Action;
+					break;
+				case "Partnership" : verbTybe = DOCTYPE.Partnership;
+					break;
+				case "Legal" : verbTybe = DOCTYPE.Legal;
+					break;
+				case "Acquisition" : verbTybe = DOCTYPE.Acquisition;
+					break;
+				case "Production" : verbTybe = DOCTYPE.Production;
+					break;
+				case "Aux" : verbTybe = DOCTYPE.Aux;
+					break;
+				case "Employment" : verbTybe = DOCTYPE.Employment;
+					break;
+				case "Statement" : verbTybe = DOCTYPE.Statement;
+					break;
+			}
+
+			if (verbTybe == null) continue;
+
+			JsonArray context_arr = entry.getValue().getAsJsonArray();
+			for (JsonElement e : context_arr) {
+				String verb = e.getAsString();
+				List<String> tokens = tokenize(verb);
+				verbs.addKeyword(String.join(" ", tokens), verbTybe);
+			}
+		}
+		return verbs.build();
 	}
 }

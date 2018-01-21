@@ -27,7 +27,7 @@ public class DateResolver {
     private static Logger logger = LoggerFactory.getLogger(DateResolver.class);
     private final static HashMap<Pattern, int[]> DATE_PATTERN_MAP = new HashMap<>();
     final private static String DATE_SEPARATOR_STR = "(?:[\\@\\.\\s,\\-\\/\\\\\\|\\&;]+|$)";
-    final private static String MONTH_NAME_STR   = "(Jan|Feb|Mar|Apr|May|June|Jul|Aug|Sep|Oct|Nov|Dec)(?:[a-zA-Z]*)";
+    final private static String MONTH_NAME_STR   = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[a-zA-Z]*)";
     final private static String DAY_STR = "([0123][0-9]|[1-9])";
     final private static String MONTH_STR = "([01][0-9]|[1-9])";
     final private static String YEAR_STR = "([12]\\d{3})";
@@ -248,7 +248,7 @@ public class DateResolver {
     }
 
     private  static DateTime findDate(String date_string){
-        if (date_string == null || date_string.length() > 85 || date_string.split("\\s+").length > 9) return null;
+        if (date_string == null || date_string.length() > 400 || date_string.split("\\s+").length > 20) return null;
         List<DateResolver> allDates = new ArrayList<>();
         for (Map.Entry<Pattern, int[]> e : DATE_PATTERN_MAP.entrySet()) {
             Pattern p = e.getKey();
@@ -305,9 +305,8 @@ public class DateResolver {
     }
 
     public static void main(String[] args) throws Exception {
-        String link = "https://insurancenewsnet.com/oarticle/u-s-senator-tammy-baldwin-to-president-trump-on-proposed-medicaid-cuts-americas-veterans-deserve-better";
-        Document doc = Jsoup.connect(link).get();
-        DateTime dt =  DateResolver.resolveDate(doc);
+        String str = "https://www.linkedin.com/in/tonybrownproductmarketer Indianapolis, Indiana Area - \u200ESenior Business Consultant - \u200ELiDow Enterprises/Customer Engagement/Customer Segmentation/Brand Positioning Dec 7, 2016 -";
+        DateTime dt =  DateResolver.resolveDateStr(str);
         logger.info("date: " + dt);
         logger.info("date: " + dt.withZone(DateTimeZone.UTC));
     }
