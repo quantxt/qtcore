@@ -21,7 +21,7 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-abstract class QTDocument {
+public abstract class QTDocument {
 
 	public enum Language
 	{
