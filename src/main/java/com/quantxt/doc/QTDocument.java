@@ -10,13 +10,8 @@ import com.google.gson.*;
 import com.quantxt.helper.types.ExtInterval;
 import com.quantxt.trie.Emit;
 import com.quantxt.trie.Trie;
-import com.quantxt.types.Entity;
 import com.quantxt.types.NamedEntity;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharArraySet;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.snowball.SnowballFilter;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -210,12 +205,8 @@ public abstract class QTDocument {
 	}
 
 
-	protected List<ExtInterval> getNounAndVerbPhrases(String orig,
-													  String[] parts)
-	{
-		//sub-class should implement this
-		return null;
-	}
+	abstract List<ExtInterval> getNounAndVerbPhrases(String orig,
+													 String[] parts);
 
 	public ArrayList<QTDocument> extractEntityMentions(QTExtract speaker) {
 		ArrayList<QTDocument> quotes = new ArrayList<>();
@@ -230,7 +221,6 @@ public abstract class QTDocument {
 			final String origBefore = i == 0 ? title : removePrnts(childs.get(i - 1).getTitle()).trim();
 
 			String rawSent_curr = orig;
-		//	String[] parts = rawSent_curr.split("\\s+");
 			List<String> tokens = tokenize(rawSent_curr);
 			String [] parts = tokens.toArray(new String[tokens.size()]);
 			int numTokens = parts.length;
