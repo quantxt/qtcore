@@ -21,7 +21,7 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QTDocument {
+abstract class QTDocument {
 
 	public enum Language
 	{
@@ -78,6 +78,7 @@ public class QTDocument {
 	}
 
 
+	/*
 	protected QTDocument getQuoteDoc(String quote)
 	{
 		QTDocument sDoc = new QTDocument("", quote);
@@ -88,6 +89,7 @@ public class QTDocument {
 		sDoc.setLanguage(getLanguage());
 		return sDoc;
 	}
+	*/
 
 
 	protected void addBasicPropstoSubDoc(QTDocument reference)
@@ -166,49 +168,25 @@ public class QTDocument {
 		return sentences;
 	}
 
-	public double[] getVectorizedTitle(QTExtract extract){
-		//must implement this
-		return null;
-	}
+	abstract List<QTDocument> getChilds();
 
-	public void processDoc(){
-		//must implement this
-	}
+	abstract double[] getVectorizedTitle(QTExtract extract);
 
-	public String Translate(String text, Language inLang, Language outLang){
-		//must implement this
-		return null;
-	}
+	abstract void processDoc();
 
-	public boolean isStatement(String s){
-		//must implement this
-		return false;
-	}
+	abstract String Translate(String text, Language inLang, Language outLang);
 
-	public String normalize(String str){
-		//must implement this
-		return null;
-	}
+	abstract boolean isStatement(String s);
 
-	public String [] getPosTags(String [] text){
-		//must implement this
-		return null;
-	}
+	abstract String normalize(String str);
 
-	public HashSet<String> getPronouns(){
-		//must implement this
-		return null;
-	}
+	abstract String [] getPosTags(String [] text);
 
-	public CharArraySet getStopwords(){
-		//must implement this
-		return null;
-	}
+	abstract HashSet<String> getPronouns();
 
-	public Trie getVerbTree(){
-		//must implement this
-		return null;
-	}
+	abstract CharArraySet getStopwords();
+
+	abstract Trie getVerbTree();
 
 	public List<String> tokenize(String str) {
 		return null;
@@ -241,13 +219,15 @@ public class QTDocument {
 
 	public ArrayList<QTDocument> extractEntityMentions(QTExtract speaker) {
 		ArrayList<QTDocument> quotes = new ArrayList<>();
-		List<String> sents = getSentences();
-		int numSent = sents.size();
+	//	List<String> sents = getSentences();
+		List<QTDocument> childs = getChilds();
+		int numSent = childs.size();
 
 		for (int i = 0; i < numSent; i++)
 		{
-			final String orig = removePrnts(sents.get(i)).trim();
-			final String origBefore = i == 0 ? title : removePrnts(sents.get(i - 1)).trim();
+			QTDocument workingChild = childs.get(i);
+			final String orig = removePrnts(workingChild.getTitle()).trim();
+			final String origBefore = i == 0 ? title : removePrnts(childs.get(i - 1).getTitle()).trim();
 
 			String rawSent_curr = orig;
 		//	String[] parts = rawSent_curr.split("\\s+");
@@ -288,7 +268,7 @@ public class QTDocument {
 			}
 
 
-			QTDocument newQuote = getQuoteDoc(orig);
+		//	QTDocument newQuote = getQuoteDoc(orig);
 
 			List<ExtInterval> tagged = getNounAndVerbPhrases(rawSent_curr, parts);
 			for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
@@ -306,23 +286,23 @@ public class QTDocument {
 								verbType = getVerbType(rawSent_curr.substring(prevExt.getStart(), prevExt.getEnd()));
 							}
 							NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
-							newQuote.addEntity(entType.getKey(), ne.getName());
+							workingChild.addEntity(entType.getKey(), ne.getName());
 							if (verbType != null) {
-								newQuote.setDocType(verbType);
+								workingChild.setDocType(verbType);
 							}
 						}
 					}
 				}
 			}
 
-			if (newQuote.getEntity() == null) {
+			if (workingChild.getEntity() == null) {
 				logger.debug("Entity is still null or Verb type is not detected: " + orig);
 				continue;
 			}
 
 
-			newQuote.setBody(origBefore + " " + orig);
-			quotes.add(newQuote);
+			workingChild.setBody(origBefore + " " + orig);
+			quotes.add(workingChild);
 		}
 
 		return quotes;
