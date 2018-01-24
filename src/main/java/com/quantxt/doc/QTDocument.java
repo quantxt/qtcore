@@ -1,20 +1,26 @@
 package com.quantxt.doc;
 
-import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import com.google.gson.*;
-
-import com.quantxt.helper.types.ExtInterval;
-import com.quantxt.trie.Emit;
-import com.quantxt.trie.Trie;
-import com.quantxt.types.NamedEntity;
-import org.apache.lucene.analysis.CharArraySet;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.quantxt.helper.types.ExtInterval;
+import com.quantxt.trie.Emit;
+import com.quantxt.types.NamedEntity;
+import com.quantxt.util.StringUtil;
 
 public abstract class QTDocument {
 
@@ -47,7 +53,7 @@ public abstract class QTDocument {
 	private String logo;
 	private String id;
 	private Set<String> categories;
-	private Set<String> sub_categories;
+	private Set<String> sub_categories; //TODO Check this - not used
 	private Set<String> tags = new HashSet<>();
 	private Map<String, Object> facts;
 	private DOCTYPE docType;
@@ -56,20 +62,14 @@ public abstract class QTDocument {
 	protected Set<String> locations;
 	protected Set<String> persons;
 	protected Set<String> organizations;
+	protected QTDocumentHelper helper;
 
-
-	protected static String removePrnts(String str){
-		str = str.replaceAll("\\([^\\)]+\\)", " ");
-		str = str.replaceAll("([\\.])+$", " $1");
-		str = str.replaceAll("\\s+", " ");
-		return str;
-	}
-
-	public QTDocument(String b, String t){
+	public QTDocument(String b, String t, QTDocumentHelper helper){
 		if (b != null) {
 			body = b.replaceAll("([\\\n\\\r])", " $1");
 		}
 		title = t.replaceAll("[\\\n\\\r\\\t]","");
+		this.helper = helper;
 	}
 
 
@@ -173,41 +173,6 @@ public abstract class QTDocument {
 
 	abstract boolean isStatement(String s);
 
-	abstract String normalize(String str);
-
-	abstract String [] getPosTags(String [] text);
-
-	abstract HashSet<String> getPronouns();
-
-	abstract CharArraySet getStopwords();
-
-	abstract Trie getVerbTree();
-
-	public List<String> tokenize(String str) {
-		return null;
-	}
-
-	private DOCTYPE getVerbType(String verbPhs) {
-
-		List<String> tokens = tokenize(verbPhs);
-		if (tokens.size() == 0) return null;
-
-		Collection<Emit> emits = getVerbTree().parseText(String.join(" ", tokens));
-		for (Emit e : emits) {
-			DOCTYPE vType = (DOCTYPE) e.getCustomeData();
-			if (vType == DOCTYPE.Aux) {
-				if (emits.size() == 1) return null;
-				continue;
-			}
-			return vType;
-		}
-		return null;
-	}
-
-
-	abstract List<ExtInterval> getNounAndVerbPhrases(String orig,
-													 String[] parts);
-
 	public ArrayList<QTDocument> extractEntityMentions(QTExtract speaker) {
 		ArrayList<QTDocument> quotes = new ArrayList<>();
 	//	List<String> sents = getSentences();
@@ -217,11 +182,11 @@ public abstract class QTDocument {
 		for (int i = 0; i < numSent; i++)
 		{
 			QTDocument workingChild = childs.get(i);
-			final String orig = removePrnts(workingChild.getTitle()).trim();
-			final String origBefore = i == 0 ? title : removePrnts(childs.get(i - 1).getTitle()).trim();
+			final String orig = StringUtil.removePrnts(workingChild.getTitle()).trim();
+			final String origBefore = i == 0 ? title : StringUtil.removePrnts(childs.get(i - 1).getTitle()).trim();
 
 			String rawSent_curr = orig;
-			List<String> tokens = tokenize(rawSent_curr);
+			List<String> tokens = helper.tokenize(rawSent_curr);
 			String [] parts = tokens.toArray(new String[tokens.size()]);
 			int numTokens = parts.length;
 			if (numTokens < 6 || numTokens > 80) continue;
@@ -242,7 +207,7 @@ public abstract class QTDocument {
 					if (ent_set.size() != 1) continue;
 					// simple co-ref for now
 				//	if (parts[0].equalsIgnoreCase("he") || parts[0].equalsIgnoreCase("she")) {
-					if (getPronouns().contains(parts[0])){
+					if (helper.getPronouns().contains(parts[0])){
 						Emit matchedName = ent_set.iterator().next();
 						String keyword = matchedName.getKeyword();
 						parts[0] = keyword;
@@ -257,10 +222,9 @@ public abstract class QTDocument {
 				continue;
 			}
 
+			//	QTDocument newQuote = getQuoteDoc(orig);
 
-		//	QTDocument newQuote = getQuoteDoc(orig);
-
-			List<ExtInterval> tagged = getNounAndVerbPhrases(rawSent_curr, parts);
+			List<ExtInterval> tagged = helper.getNounAndVerbPhrases(rawSent_curr, parts);
 			for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
 				for (Emit matchedName : entType.getValue()) {
 					for (int j = 0; j < tagged.size(); j++) {
@@ -271,9 +235,9 @@ public abstract class QTDocument {
 							//only if this is a noun type and next one is a verb!
 							DOCTYPE verbType = null;
 							if (nextExt != null && nextExt.getType().equals("V")) {
-								verbType = getVerbType(rawSent_curr.substring(nextExt.getStart(), nextExt.getEnd()));
+								verbType = helper.getVerbType(rawSent_curr.substring(nextExt.getStart(), nextExt.getEnd()));
 							} else if (prevExt != null && prevExt.getType().equals("V")) {
-								verbType = getVerbType(rawSent_curr.substring(prevExt.getStart(), prevExt.getEnd()));
+								verbType = helper.getVerbType(rawSent_curr.substring(prevExt.getStart(), prevExt.getEnd()));
 							}
 							NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
 							workingChild.addEntity(entType.getKey(), ne.getName());
@@ -434,44 +398,12 @@ public abstract class QTDocument {
 		return gson.toJson(this);
 	}
 
-	public Trie buildVerbTree(final byte[] verbArr) throws IOException {
-		JsonParser parser = new JsonParser();
-		Trie.TrieBuilder verbs = Trie.builder().onlyWholeWords().ignoreCase();
-		JsonElement jsonElement = parser.parse(new String(verbArr, "UTF-8"));
-		JsonObject contextJson = jsonElement.getAsJsonObject();
-		for (Map.Entry<String, JsonElement> entry : contextJson.entrySet()) {
-			String context_key = entry.getKey();
-			DOCTYPE verbTybe = null;
-			switch (context_key) {
-				case "Speculation" : verbTybe = DOCTYPE.Speculation;
-					break;
-				case "Action" : verbTybe = DOCTYPE.Action;
-					break;
-				case "Partnership" : verbTybe = DOCTYPE.Partnership;
-					break;
-				case "Legal" : verbTybe = DOCTYPE.Legal;
-					break;
-				case "Acquisition" : verbTybe = DOCTYPE.Acquisition;
-					break;
-				case "Production" : verbTybe = DOCTYPE.Production;
-					break;
-				case "Aux" : verbTybe = DOCTYPE.Aux;
-					break;
-				case "Employment" : verbTybe = DOCTYPE.Employment;
-					break;
-				case "Statement" : verbTybe = DOCTYPE.Statement;
-					break;
-			}
+    public QTDocumentHelper getHelper() {
+        return helper;
+    }
 
-			if (verbTybe == null) continue;
+    public void setHelper(QTDocumentHelper helper) {
+        this.helper = helper;
+    }
 
-			JsonArray context_arr = entry.getValue().getAsJsonArray();
-			for (JsonElement e : context_arr) {
-				String verb = e.getAsString();
-				List<String> tokens = tokenize(verb);
-				verbs.addKeyword(String.join(" ", tokens), verbTybe);
-			}
-		}
-		return verbs.build();
-	}
 }
