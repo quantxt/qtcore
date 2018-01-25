@@ -21,7 +21,6 @@ public interface QTDocumentHelper {
 
     String[] getPosTags(String[] text);
 
-    //https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
     List<ExtInterval> getNounAndVerbPhrases(String orig, String[] parts);
 
     Trie getVerbTree();

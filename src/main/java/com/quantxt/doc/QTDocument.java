@@ -72,21 +72,6 @@ public abstract class QTDocument {
 		this.helper = helper;
 	}
 
-
-	/*
-	protected QTDocument getQuoteDoc(String quote)
-	{
-		QTDocument sDoc = new QTDocument("", quote);
-		sDoc.setDate(getDate());
-		sDoc.setLink(getLink());
-		sDoc.setLogo(getLogo());
-		sDoc.setSource(getSource());
-		sDoc.setLanguage(getLanguage());
-		return sDoc;
-	}
-	*/
-
-
 	protected void addBasicPropstoSubDoc(QTDocument reference)
 	{
 		this.language = reference.language;
@@ -167,15 +152,12 @@ public abstract class QTDocument {
 
 	abstract double[] getVectorizedTitle(QTExtract extract);
 
-	abstract void processDoc();
-
 	abstract String Translate(String text, Language inLang, Language outLang);
 
 	abstract boolean isStatement(String s);
 
 	public ArrayList<QTDocument> extractEntityMentions(QTExtract speaker) {
 		ArrayList<QTDocument> quotes = new ArrayList<>();
-	//	List<String> sents = getSentences();
 		List<QTDocument> childs = getChilds();
 		int numSent = childs.size();
 
@@ -206,7 +188,6 @@ public abstract class QTDocument {
 					Collection<Emit> ent_set = entType.getValue();
 					if (ent_set.size() != 1) continue;
 					// simple co-ref for now
-				//	if (parts[0].equalsIgnoreCase("he") || parts[0].equalsIgnoreCase("she")) {
 					if (helper.getPronouns().contains(parts[0])){
 						Emit matchedName = ent_set.iterator().next();
 						String keyword = matchedName.getKeyword();
@@ -221,8 +202,6 @@ public abstract class QTDocument {
 			if (name_match_curr.size() == 0) {
 				continue;
 			}
-
-			//	QTDocument newQuote = getQuoteDoc(orig);
 
 			List<ExtInterval> tagged = helper.getNounAndVerbPhrases(rawSent_curr, parts);
 			for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
