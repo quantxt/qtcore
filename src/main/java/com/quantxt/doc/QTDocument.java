@@ -42,7 +42,7 @@ public abstract class QTDocument {
 	protected String englishTitle;
 	protected String body;
 	protected Language language;
-	protected List<String> sentences;
+	protected transient List<String> sentences;
 	protected String excerpt;
 
 	private DateTime date;
@@ -62,7 +62,7 @@ public abstract class QTDocument {
 	protected Set<String> locations;
 	protected Set<String> persons;
 	protected Set<String> organizations;
-	protected QTDocumentHelper helper;
+	protected transient QTDocumentHelper helper;
 
 	public QTDocument(String b, String t, QTDocumentHelper helper){
 		if (b != null) {
@@ -265,6 +265,8 @@ public abstract class QTDocument {
 	}
 
 	public Map<String, LinkedHashSet<String> > getEntity(){return entity;}
+
+	public void setEntity(Map<String, LinkedHashSet<String>> entity){this.entity = entity;}
 
 	public void addTag (String tag){
 		tags.add(tag);
