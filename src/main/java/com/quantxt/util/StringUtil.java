@@ -1,5 +1,6 @@
 package com.quantxt.util;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -26,21 +27,19 @@ public class StringUtil {
         if (tokenList == null || tokenList.size() == 0)
             return null;
 
-        int shift = 0;
         int end = str.length();
         while (str.length() >= end) {
-            // String str_part = str.substring(0, end);
             int start = str.substring(0, end).lastIndexOf(tokenList.get(0));
             if (start == -1) {
                 logger.error("no first match");
                 return null;
             }
             end = start;
-
+            int shift = start;
             for (int c = 0; c < tokenList.size(); c++) {
                 String t = tokenList.get(c);
-                // int t_length = t.length();
-                int n_start = str.indexOf(t, start);
+    //            String str2search = str.substring(shift);
+                int n_start = str.indexOf(t, shift);
                 if (n_start >= 0) {
                     // str = str.substring(n_start);
                     int sh = str.indexOf(' ', n_start);
@@ -53,6 +52,9 @@ public class StringUtil {
                         shift = 0;
                         break;
                     }
+                } else {
+                    shift = 0;
+                    break;
                 }
             }
             if (shift > 0) {
@@ -60,6 +62,32 @@ public class StringUtil {
             }
         }
         return null;
+    }
+
+    public static void main(String[] args) throws Exception {
+        String str = "Gilead Sciences Company Profile Gilead Sciences, Inc. "
+                + "is a research-based biopharmaceutical company that discovers, "
+                + "develops and commercializes medicines in areas of unmet medical need .";
+        List<String> tokenlist = new ArrayList<>();
+        tokenlist.add("medicines");
+        tokenlist.add("in");
+        tokenlist.add("areas");
+        tokenlist.add("of");
+        tokenlist.add("unmet");
+        ExtInterval ex = findSpan(str, tokenlist);
+        logger.info(str.substring(ex.getStart(), ex.getEnd()));
+
+        tokenlist = new ArrayList<>();
+        tokenlist.add("Gilead");
+        tokenlist.add("Sciences");
+        tokenlist.add("Company");
+        tokenlist.add("Profile");
+        tokenlist.add("Gilead");
+        tokenlist.add("Sciences");
+
+
+        ex = findSpan(str, tokenlist);
+        logger.info(str.substring(ex.getStart(), ex.getEnd()));
     }
 
 }
