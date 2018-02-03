@@ -1,8 +1,10 @@
 package com.quantxt.util;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.quantxt.types.MapSort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,71 +25,60 @@ public class StringUtil {
         return str;
     }
 
+    private static ExtInterval findSpanHelper(String str,
+                                              int startPos,
+                                              List<String> tokenList)
+    {
+        if (tokenList.size() == 0) {
+            return null;
+        }
+        int strLength = str.length();
+        int end = startPos;
+        for (int c = 0; c < tokenList.size(); c++) {
+            String t = tokenList.get(c);
+            int pos = str.indexOf(t, end);
+            if (pos < 0) {
+                return null;
+            }
+            end = pos + t.length();
+            if (end > strLength) return null;
+        }
+
+        return new ExtInterval(startPos, end);
+    }
+
     public static ExtInterval findSpan(String str, List<String> tokenList) {
         if (tokenList == null || tokenList.size() == 0)
             return null;
 
-        int end = str.length();
-        while (str.length() >= end) {
-            int start = str.substring(0, end).lastIndexOf(tokenList.get(0));
-            if (start == -1) {
-                logger.error("no first match");
-                return null;
+        Map<ExtInterval, Integer> allMatahces = new HashMap<>();
+        String firstToken = tokenList.get(0);
+        int cursor = 0;
+        while (cursor >=0){
+            int pos = str.indexOf(firstToken, cursor);
+            if (pos < 0) break;
+            ExtInterval ext = findSpanHelper(str, pos, tokenList);
+            if (ext != null){
+                allMatahces.put(ext, ext.getEnd() - ext.getStart());
             }
-            end = start;
-            int shift = start;
-            for (int c = 0; c < tokenList.size(); c++) {
-                String t = tokenList.get(c);
-    //            String str2search = str.substring(shift);
-                int n_start = str.indexOf(t, shift);
-                if (n_start >= 0) {
-                    // str = str.substring(n_start);
-                    int sh = str.indexOf(' ', n_start);
-                    if (sh > 0) {
-                        shift = sh;
-                    } else if (sh == -1 && (c == tokenList.size() - 1)) {
-                        shift = str.length();
-                    } else {
-                        // wrong token
-                        shift = 0;
-                        break;
-                    }
-                } else {
-                    shift = 0;
-                    break;
-                }
-            }
-            if (shift > 0) {
-                return new ExtInterval(start, shift);
+            cursor = pos + firstToken.length();
+        }
+        //find shortest ..
+        // if there multiple shorts then we pick the last one (the one closer to the end of utterance)
+        Map<ExtInterval, Integer> sorted = MapSort.sortByValue(allMatahces);
+        int shortestLnegth = sorted.entrySet().iterator().next().getValue();
+        ExtInterval res = sorted.entrySet().iterator().next().getKey();
+
+        for (Map.Entry<ExtInterval, Integer> e : sorted.entrySet()){
+            int length = e.getValue();
+            if (length != shortestLnegth) break;
+            ExtInterval key = e.getKey();
+            if (key.getStart() > res.getStart()){
+                res = key;
             }
         }
-        return null;
+
+        return res;
+
     }
-
-    public static void main(String[] args) throws Exception {
-        String str = "Gilead Sciences Company Profile Gilead Sciences, Inc. "
-                + "is a research-based biopharmaceutical company that discovers, "
-                + "develops and commercializes medicines in areas of unmet medical need .";
-        List<String> tokenlist = new ArrayList<>();
-        tokenlist.add("medicines");
-        tokenlist.add("in");
-        tokenlist.add("areas");
-        tokenlist.add("of");
-        tokenlist.add("unmet");
-        ExtInterval ex = findSpan(str, tokenlist);
-        logger.info(str.substring(ex.getStart(), ex.getEnd()));
-
-        tokenlist = new ArrayList<>();
-        tokenlist.add("Gilead");
-        tokenlist.add("Sciences");
-        tokenlist.add("Company");
-        tokenlist.add("Profile");
-        tokenlist.add("Gilead");
-        tokenlist.add("Sciences");
-
-
-        ex = findSpan(str, tokenlist);
-        logger.info(str.substring(ex.getStart(), ex.getEnd()));
-    }
-
 }
