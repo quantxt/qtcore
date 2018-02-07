@@ -25,6 +25,8 @@ public interface QTDocumentHelper {
 
     Trie getVerbTree();
 
+    boolean isSentence(String str, List<String> tokens);
+
     CharArraySet getStopwords();
 
     Set<String> getPronouns();

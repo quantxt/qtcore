@@ -26,7 +26,7 @@ public abstract class QTDocument {
 
 	public enum Language
 	{
-		ENGLISH, SPANISH, GERMAN, FRENCH, ARABIC, RUSSIAN, FARSI
+		ENGLISH, SPANISH, GERMAN, FRENCH, ARABIC, RUSSIAN, FARSI, JAPANESE
 	}
 
 	final private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
@@ -170,8 +170,12 @@ public abstract class QTDocument {
 			String rawSent_curr = orig;
 			List<String> tokens = helper.tokenize(rawSent_curr);
 			String [] parts = tokens.toArray(new String[tokens.size()]);
-			int numTokens = parts.length;
-			if (numTokens < 6 || numTokens > 80) continue;
+			if (! helper.isSentence(rawSent_curr, tokens)) continue;
+//			int numTokens = parts.length;
+//			if (numTokens < 6 || numTokens > 80) {
+//				logger.debug("num tokens are " + numTokens + " / " + rawSent_curr);
+//				continue;
+//			}
 
 /*
             try {
