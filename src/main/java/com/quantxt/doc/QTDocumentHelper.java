@@ -3,8 +3,6 @@ package com.quantxt.doc;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.lucene.analysis.CharArraySet;
-
 import com.quantxt.doc.QTDocument.DOCTYPE;
 import com.quantxt.helper.types.ExtInterval;
 import com.quantxt.trie.Trie;
@@ -27,7 +25,7 @@ public interface QTDocumentHelper {
 
     boolean isSentence(String str, List<String> tokens);
 
-    CharArraySet getStopwords();
+    Set<String> getStopwords();
 
     Set<String> getPronouns();
 

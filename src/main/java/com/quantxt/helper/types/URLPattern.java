@@ -1,5 +1,8 @@
 package com.quantxt.helper.types;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,8 +18,11 @@ import java.util.regex.Pattern;
 public class URLPattern {
 
     final private static Logger logger = LoggerFactory.getLogger(URLPattern.class);
+    final private static Pattern DATE = Pattern.compile("__DATE_(-?[1-9]\\d*|0)");
     final private static Pattern COUNTER = Pattern.compile("__COUNT_(\\d+)_(\\d+)_(\\d+)__");
     final private static Pattern QUERY   = Pattern.compile("__QUERY__");
+    final private static DateTimeFormatter dtf = DateTimeFormat.forPattern("MM/dd/yyyy");
+
 
     private String [] links;
     private String urlPattern = "href=\"(http[^\"]+)\"";
@@ -94,9 +100,24 @@ public class URLPattern {
 
     public void addQueryAndPaging(Collection<String> all_search_terms) throws UnsupportedEncodingException
     {
-        ArrayList<String> counter_added = new ArrayList<>();
-        for (String  searchUrl : links) {
+        ArrayList<String> processed = new ArrayList<>();
 
+        DateTime today = new DateTime();
+        //check for date
+        for (String  searchUrl : links) {
+            if (searchUrl.contains("__DATE_")) {
+                Matcher date_match = DATE.matcher(searchUrl);
+                while (date_match.find()) {
+                    DateTime finaldate = today.plusDays(Integer.parseInt(date_match.group(1)));
+                    String date_str = dtf.print(finaldate);
+                    searchUrl = searchUrl.replace(date_match.group(0), date_str);
+                }
+            }
+            processed.add(searchUrl);
+        }
+
+        ArrayList<String> counter_added = new ArrayList<>();
+        for (String  searchUrl : processed) {
             Matcher counter_match = COUNTER.matcher(searchUrl);
 
             if (counter_match.find()) {
@@ -121,7 +142,6 @@ public class URLPattern {
             if (query_match.find()) {
                 for (String search_term : all_search_terms) {
                     search_term = search_term.toLowerCase().trim().replace(" " , seprator);
-
                     String searchLink = l.replace(query_match.group(0), search_term);
                     if (links.contains(searchLink)) continue;
                     links.add(searchLink);
@@ -135,7 +155,7 @@ public class URLPattern {
     }
 
     public static void main(String[] args) throws Exception {
-        String bas_google_search_url = "https://www.google.com/search?q=__QUERY__&start=__COUNT_0_10_50__&num=50&lr=lang_en&tbas=0&biw=1280&bih=726";
+        String bas_google_search_url = "https://www.google.com/search?q=__QUERY__&start=__COUNT_0_12_50__&lr=lang_es&num=50&tbm=nws&tbs=lr:lang_1es,cdr:1,cd_min:01/01/2016,cd_max:";
         URLPattern up = new URLPattern();
         up.links = new String[] {bas_google_search_url};
         List<String> terms = new ArrayList<>();
