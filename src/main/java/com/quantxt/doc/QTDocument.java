@@ -52,6 +52,10 @@ public abstract class QTDocument {
 	private String author;
 	private String logo;
 	private String id;
+
+	private ArrayList<String> verbs;
+	private ArrayList<String> nouns;
+
 	private Set<String> categories;
 	private Set<String> sub_categories; //TODO Check this - not used
 	private Set<String> tags = new HashSet<>();
@@ -156,6 +160,99 @@ public abstract class QTDocument {
 
 	abstract boolean isStatement(String s);
 
+	public ArrayList<QTDocument> extractEntityMentionsV2(QTExtract speaker) {
+		ArrayList<QTDocument> quotes = new ArrayList<>();
+		List<QTDocument> childs = getChilds();
+		int numSent = childs.size();
+
+		for (int i = 0; i < numSent; i++)
+		{
+			QTDocument workingChild = childs.get(i);
+			final String orig = StringUtil.removePrnts(workingChild.getTitle()).trim();
+			final String origBefore = i == 0 ? title : StringUtil.removePrnts(childs.get(i - 1).getTitle()).trim();
+
+			String rawSent_curr = orig;
+
+			List<String> tokens = helper.tokenize(rawSent_curr);
+			String [] parts = tokens.toArray(new String[tokens.size()]);
+			if (! helper.isSentence(rawSent_curr, tokens)) continue;
+
+			Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(orig);
+
+			if (name_match_curr.size() == 0) {
+				Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(origBefore);
+				for (Map.Entry<String, Collection<Emit>> entType : name_match_befr.entrySet()) {
+					Collection<Emit> ent_set = entType.getValue();
+					if (ent_set.size() != 1) continue;
+					// simple co-ref for now
+					if (helper.getPronouns().contains(parts[0])){
+						Emit matchedName = ent_set.iterator().next();
+						String keyword = matchedName.getKeyword();
+						parts[0] = keyword;
+						rawSent_curr = String.join(" ", parts);
+						name_match_curr.put(entType.getKey(), ent_set);
+					}
+				}
+			}
+
+			//if still no emit continue
+			if (name_match_curr.size() == 0) {
+				continue;
+			}
+
+			List<ExtInterval> tagged = helper.getNounAndVerbPhrases(rawSent_curr, parts);
+
+			if (tagged.size() == 0) continue;
+			verbs = new ArrayList<>();
+			nouns = new ArrayList<>();
+			for (ExtInterval ei : tagged){
+				String typ = ei.getType();
+				String str = rawSent_curr.substring(ei.getStart(), ei.getEnd());
+				switch (typ) {
+					case "N" : nouns.add(str);
+						break;
+					case "V" : verbs.add(str);
+						break;
+				}
+			}
+
+			for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
+				for (Emit matchedName : entType.getValue()) {
+					for (int j = 0; j < tagged.size(); j++) {
+						ExtInterval ext = tagged.get(j);
+						ExtInterval nextExt = (j < tagged.size() - 1) ? tagged.get(j + 1) : null;
+						ExtInterval prevExt = (j > 0) ? tagged.get(j - 1) : null;
+						if (ext.overlapsWith(matchedName) && ext.getType().equals("N")) {
+							//only if this is a noun type and next one is a verb!
+							DOCTYPE verbType = null;
+							if (nextExt != null && nextExt.getType().equals("V")) {
+								verbType = helper.getVerbType(rawSent_curr.substring(nextExt.getStart(), nextExt.getEnd()));
+							} else if (prevExt != null && prevExt.getType().equals("V")) {
+								verbType = helper.getVerbType(rawSent_curr.substring(prevExt.getStart(), prevExt.getEnd()));
+							}
+							NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
+							workingChild.addEntity(entType.getKey(), ne.getName());
+							if (verbType != null) {
+								workingChild.setDocType(verbType);
+							}
+						}
+					}
+				}
+			}
+
+			if (workingChild.getEntity() == null) {
+				logger.debug("Entity is still null or Verb type is not detected: " + orig);
+				continue;
+			}
+
+
+			workingChild.setBody(origBefore + " " + orig);
+			quotes.add(workingChild);
+		}
+
+		return quotes;
+	}
+
 	public ArrayList<QTDocument> extractEntityMentions(QTExtract speaker) {
 		ArrayList<QTDocument> quotes = new ArrayList<>();
 		List<QTDocument> childs = getChilds();
@@ -168,6 +265,7 @@ public abstract class QTDocument {
 			final String origBefore = i == 0 ? title : StringUtil.removePrnts(childs.get(i - 1).getTitle()).trim();
 
 			String rawSent_curr = orig;
+
 			List<String> tokens = helper.tokenize(rawSent_curr);
 			String [] parts = tokens.toArray(new String[tokens.size()]);
 			if (! helper.isSentence(rawSent_curr, tokens)) continue;
@@ -208,6 +306,7 @@ public abstract class QTDocument {
 			}
 
 			List<ExtInterval> tagged = helper.getNounAndVerbPhrases(rawSent_curr, parts);
+
 			for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
 				for (Emit matchedName : entType.getValue()) {
 					for (int j = 0; j < tagged.size(); j++) {

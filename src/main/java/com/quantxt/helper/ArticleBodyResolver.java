@@ -1,16 +1,27 @@
 package com.quantxt.helper;
 
 import com.quantxt.types.MapSort;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
+import org.jsoup.select.NodeTraversor;
+import org.jsoup.select.NodeVisitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by matin on 3/26/17.
@@ -20,13 +31,18 @@ public class ArticleBodyResolver {
     private static Logger logger = LoggerFactory.getLogger(ArticleBodyResolver.class);
 
     public static Set<String> NO_TEXT_TAGS = new HashSet<>(Arrays.asList("h1", "caption", "cite", "h2", "audio", "script", "nav", "iframe", "embed", "footer", "form", "figcaption", "img", "video", "figure"));
+    public static String PUNCS = "。.!?؟¿¡";
+    public static Pattern PUNCSPattern = Pattern.compile("[" + PUNCS +"]\\s+");
+
 
     private Document doc;
     private int totoalWords = 0;
     private List<Element> extractions;
+    //0: default
+    //1: Good for well written text, long enough sentences ending with punctuations
     private int mode;
 
-    private Element articleNode;
+    private List<Element> articleNode = new ArrayList<>();
 
     public ArticleBodyResolver(Document doc) {
         this.doc = doc;
@@ -177,15 +193,8 @@ public class ArticleBodyResolver {
         return level;
     }
 
-    public int getLength(Element e) {
-        String eOwnText = e.ownText().toLowerCase().replaceAll("[^a-z\\s]+", "").trim();
-        int eTextNumWords = eOwnText.split("\\s+").length;
-        return eTextNumWords;
-    }
-
     public int getTLength(Element e) {
-        String eText = e.text().toLowerCase().replaceAll("[^a-z\\s]+", "").trim();
-        int eTextNumWords = eText.split("\\s+").length;
+        int eTextNumWords = e.text().length();
         return eTextNumWords;
     }
 
@@ -197,27 +206,10 @@ public class ArticleBodyResolver {
         return eTextNumWords;
     }
 
-    public int getLength(Elements es) {
-        int eTextNumWords = 0;
-        for (Element e : es) {
-            eTextNumWords += getLength(e);
-        }
-        return eTextNumWords;
-    }
-
-    public int getLength(List<Element> es) {
-        int eTextNumWords = 0;
-        for (Element e : es) {
-            eTextNumWords += getLength(e);
-        }
-        return eTextNumWords;
-    }
-
     public List<Element> getTextElements(Elements parent, int minNumWords, int maxNumWords) {
         List<Element> elems = new ArrayList<>();
         for (Element e : parent) {
-            String text = e.ownText();
-            int n = text.split("\\s+").length;
+            int n = getLevel(e);
             if (n >= minNumWords && n <= maxNumWords) {
                 elems.add(e);
             }
@@ -230,7 +222,7 @@ public class ArticleBodyResolver {
         for (Element e : elements) {
             if (NO_TEXT_TAGS.contains(e.tagName())) continue;
             final String text = e.text();
-            int n = text.split("\\s+").length;
+            int n = text.length();
             if (n >= minNumWords && n <= maxNumWords) {
                 elems.add(e);
             }
@@ -241,7 +233,8 @@ public class ArticleBodyResolver {
     public Elements getArticleNode() {
         Elements docElements = doc.body().getAllElements();
         docElements.select(".comments-panel").remove();
-        List<Element> textHeavyElements = getTextAllElements(docElements, 10, 10000);
+  //      List<Element> textHeavyElements = getTextAllElements(docElements, 10, 10000);
+        List<Element> textHeavyElements = getTextAllElements(docElements, 60, 10000);
 
         int numWords = 0;
         List<Element> allTextHeavyOwnElements = new ArrayList<>();
@@ -249,11 +242,13 @@ public class ArticleBodyResolver {
         for (Element e : docElements) {
             if (NO_TEXT_TAGS.contains(e.tagName())) continue;
             String text = e.ownText();
-            int n = text.split("\\s+").length;
-            if (n >= 10) {
+  //          int n = text.split("\\s+").length;
+            int n = text.length();
+            if (n >= 60) {
                 allTextHeavyOwnElements.add(e);
+ //               logger.info("TEXT " + text);
                 numWords += n;
-            } else if (n < 3) {
+            } else if (n < 10 /*3*/) {
                 allTextOwnElements.add(e);
             }
         }
@@ -263,10 +258,13 @@ public class ArticleBodyResolver {
         for (int idx = 0; idx < textHeavyElements.size(); idx++) {
             Element e = textHeavyElements.get(idx);
 
-            List<Element> textOwnbHeavyElements = getTextElements(e.getAllElements(), 10, 10000);
+            Elements allEments = e.getAllElements();
+    //        List<Element> textOwnbHeavyElements = getTextElements(e.getAllElements(), 10, 10000);
+            List<Element> textOwnbHeavyElements = getTextElements(allEments, 60, 10000);
             if (textOwnbHeavyElements.size() < 1) continue;
 
-            List<Element> textOwnElements = getTextElements(e.getAllElements(), 0, 2);
+  //          List<Element> textOwnElements = getTextElements(e.getAllElements(), 0, 2);
+            List<Element> textOwnElements = getTextElements(allEments, 0, 59);
             double totalWords = (double) getTLength(textOwnbHeavyElements);
     //        for (Element et : textOwnbHeavyElements) {
     //            double tw = (double) getLength(et);
@@ -303,7 +301,7 @@ public class ArticleBodyResolver {
             topTextElems.add(goodElem);
         }
         int textHeavyElementId = sortedElem2score.entrySet().iterator().next().getKey();
-        articleNode = textHeavyElements.get(textHeavyElementId);
+   //     articleNode = textHeavyElements.get(textHeavyElementId);
         return new Elements(topTextElems);
     }
 
@@ -328,147 +326,182 @@ public class ArticleBodyResolver {
     }
 
     public List<Element> getText() {
-        List<Element> goodElems = new ArrayList<>();
-        switch (mode) {
-            case 0:
-                doc.body();
-                goodElems.add(doc.body());
-                return goodElems;
-            default:
-                Map<String, Integer> elemType2Count = new HashMap<>();
-
-                List<Element> articleNodes = getArticleNode();
-                for (Element articleNode : articleNodes) {
-                    List<Element> allelems = getTextAllElements(articleNode.getAllElements(), 6, 10000);
-
-                    for (Element e : allelems) {
-                        int numWords = getLength(e);
-                        String str = getElementStr(e);
-                        if (str.length() == 0) {
-                            String tagName = e.tagName();
-                            int depth = getLevel(e);
-                            for (int i = depth - 2; i < depth + 3; i++) {
-                                String stri = "==" + tagName + i + "==";
-                                Integer c = elemType2Count.get(stri);
-                                if (c == null) {
-                                    c = 0;
-                                }
-                                elemType2Count.put(stri, c + numWords);
-                            }
-                        } else {
-                            Integer c = elemType2Count.get(str);
-                            if (c == null) {
-                                c = 0;
-                            }
-                            elemType2Count.put(str, c + numWords);
+        ArrayList<Element> topTextElems = new ArrayList<>();
+        switch (mode){
+            case 0 :
+                for (Element ae : articleNode) {
+                    topTextElems.add(ae);
+                }
+                break;
+            case 1:
+                for (Element ae : articleNode) {
+                    String txt = ae.text();
+                    if (txt == null || txt.isEmpty()) continue;
+                    txt = txt.replaceAll("[\"«»“”〝〟『』]","");
+                    txt = txt.replaceAll("[               　 ]+"," ");
+                    txt = txt.trim();
+                    if (txt.length() > 1 && PUNCS.contains(txt.substring(txt.length() - 1))) {
+                        topTextElems.add(ae);
+                    } else {
+                        txt = ae.ownText();
+                        if (txt == null || txt.isEmpty()) continue;
+                        txt = txt.replaceAll("[\"«»“”〝〟『』]","");
+                        txt = txt.replaceAll("[               　 ]+"," ");
+                        txt = txt.trim();
+                        if (txt.length() > 1 && PUNCS.contains(txt.substring(txt.length() - 1))) {
+                            topTextElems.add(ae);
                         }
                     }
                 }
-
-                LinkedHashMap<String, Integer> sortedElemType2Count = MapSort.sortdescByValue(elemType2Count);
-                String bestTagStr = sortedElemType2Count.entrySet().iterator().next().getKey();
-                for (Element articleNode : articleNodes) {
-                    for (Element e : articleNode.getAllElements()) {
-                        String elementStr = getElementStr(e);
-                        String eText = e.text();
-                        eText = eText.replace("\u00A0", "").trim();
-                        if (elementStr.length() != 0) {
-                            if (elementStr.equals(bestTagStr)) {
-                                for (Element child : e.getAllElements()) {
-                                    String tag = child.tagName();
-                                    String text = child.ownText();
-                                    if (text.isEmpty()) {
-                                        child.remove();
-                                    }
-//                            if (TEXT_TAGS.contains(tag)) continue;
-//                            child.remove();
-                                }
-                                if (eText.isEmpty()) continue;
-                                goodElems.add(e);
-                            }
-                        } else {
-                            String tagName = e.tagName();
-                            int depth = getLevel(e);
-                            for (int i = depth - 2; i < depth + 3; i++) {
-                                elementStr = "==" + tagName + i + "==";
-                                if (elementStr.equals(bestTagStr)) {
-                                    for (Element child : e.getAllElements()) {
-                                        String tag = child.tagName();
-                                        String text = child.ownText();
-                                        if (text.isEmpty()) {
-                                            child.remove();
-                                        }
-//                                if (TEXT_TAGS.contains(tag)) continue;
-//                                child.remove();
-                                    }
-                                    if (eText.isEmpty()) continue;
-                                    goodElems.add(e);
-                                }
-                            }
-                        }
-                    }
-                }
-                //      logger.info(goodElems.get(0).text());
-                return goodElems;
         }
+
+        return topTextElems;
     }
 
     public String getNodeCss() {
-        return articleNode.cssSelector();
+        return articleNode.get(0).cssSelector();
     }
 
-    public void analyze3() {
-        getArticleNode();
-        logger.info(getNodeCss());
-        /*
-        Map<String, Double> elementScore = new HashMap<>();
+    private static final class QTNode implements Comparable{
+        static int counter = 0;
+        final static String css_delim = " > ";
+        int id;
+        int depth;
+        Double length;
+        Element node;
+        LinkedHashSet<String> roots;
 
-        Elements elements = doc.body().select("*:matchesOwn(\\S+\\s+\\S+\\s+\\S+)");
-        for (Element e : elements) {
-            double score = getLengthScore(e);
-            String cssSelector = e.cssSelector();
-            elementScore.put(cssSelector, score);
-        }
-
-        Map<String, Double> sortedElementScore = MapSort.sortdescByValue(elementScore);
-        for (Map.Entry<String, Double> e : sortedElementScore.entrySet()){
-            logger.info("GG " + doc.select(e.getKey()).text() + " " + e.getValue());
-        }
-
-        Map<String, ArrayList<Double>> singleElementScoreArray = new HashMap<>();
-        for (Map.Entry<String, Double> ee : elementScore.entrySet()){
-            String [] elems = ee.getKey().split(" > ");
-            StringBuilder sb = new StringBuilder();
-
-            for (String e : elems){
-                sb.append(e);
-                ArrayList<Double> s = singleElementScoreArray.get(e);
-                if (s == null){
-                    s = new ArrayList<>();
+        public QTNode(Element n, int d){
+            node = n;
+            length = 0d;
+            id = counter++;
+            depth = d;
+            roots = new LinkedHashSet<>();
+            String [] parts  = n.cssSelector().split(css_delim);
+            if (parts.length == 1){
+                roots.add(parts[0]);
+            } else {
+                for (int i = 0; i < parts.length-1; i++) {
+                    if (parts[i].contains("child")) break;
+                    roots.add(String.join(css_delim, Arrays.copyOfRange(parts, 0, i+1)));
                 }
-                s.add(ee.getValue());
-                singleElementScoreArray.put(sb.toString(), s);
-                sb.append(" > ");
             }
         }
 
-        Map<String, Double> singleElementScore = new HashMap<>();
-        for (Map.Entry<String, ArrayList<Double>> ses : singleElementScoreArray.entrySet()){
-            double sum = 0;
-            for (double d : ses.getValue()){
-                sum +=d;
-            }
-            double avg = sum / (double) ses.getValue().size();
-            singleElementScore.put(ses.getKey(), avg);
+        @Override
+        public int compareTo(Object obj) {
+            return this.length.compareTo(((QTNode)obj).length);
+        }
+    }
+
+    private static final class ToTextNodeVisitor implements NodeVisitor {
+        HashMap<String, QTNode> buffer;
+
+        ToTextNodeVisitor() {
+            buffer = new HashMap<>();
         }
 
+        public HashMap<String, QTNode> getBuffer(){
+            return buffer;
+        }
+
+        @Override
+        public void head(Node node, int depth) {
+            if (!(node instanceof TextNode)) return;
+            TextNode textNode = (TextNode) node;
+            String text = textNode.text().replace('\u00A0', ' ').trim(); // non breaking space
+            if (text.isEmpty()) return;
+
+            double length = text.length();
+
+            if (length > 30) {
+                Element elem = (Element) node.parent();
+                try {
+                    String key = elem.cssSelector();
+                    QTNode qtnode = buffer.get(key);
+                    if (qtnode == null){
+                        qtnode = new QTNode(elem, depth);
+                        buffer.put(key, qtnode);
+                        qtnode = buffer.get(key);
+                    }
+                    qtnode.length += length;
+                } catch (Exception exp){
+                    logger.error("Jsoup parsing error");
+                }
+
+            }
+        }
+
+        @Override
+        public void tail(Node node, int depth) {
+
+        }
+    }
 
 
-        Map<String, Double> sortedSingleElementScore = MapSort.sortdescByValue(singleElementScore);
-        for (Map.Entry<String, Double> e : sortedSingleElementScore.entrySet()){
-            logger.info(e.getKey() + " " + e.getValue());
+    public void analyze3() {
+        ToTextNodeVisitor nvistor = new ToTextNodeVisitor();
+        NodeTraversor nt = new NodeTraversor(nvistor);
+        nt.traverse(doc);
+        Map<String, QTNode> output = nvistor.getBuffer();
+
+        Map<String, Double> outputRootDepth = new HashMap<>();
+        for (Map.Entry<String, QTNode> e : output.entrySet()){
+            QTNode qtNode = e.getValue();
+            for (String r : qtNode.roots) {
+                Double val = outputRootDepth.get(r);
+                if (val == null) {
+                    val = 0d;
+                }
+                outputRootDepth.put(r, qtNode.length * qtNode.depth + val);
+            }
+        }
+        Map<String, Double> outputRootDepthSorted = MapSort.sortdescByValue(outputRootDepth);
+
+        double contentValue = outputRootDepthSorted.entrySet().iterator().next().getValue();
+        HashSet<String> keptCssSelectors = new HashSet<>();
+
+        HashMap<Element, Integer> toKeep = new HashMap<>();
+        for (Map.Entry<String, Double> e : outputRootDepthSorted.entrySet()){
+            double p = e.getValue() / contentValue;
+            String key = e.getKey();
+            if (p > .3) {
+                for (Map.Entry<String, QTNode> qte : output.entrySet()){
+                    QTNode qtNode = qte.getValue();
+                    Element elem = qtNode.node;
+                    String elemCssPath = elem.cssSelector();
+                    if (!keptCssSelectors.contains(elemCssPath) && qtNode.roots.contains(key)){
+                        keptCssSelectors.add(elemCssPath);
+                        toKeep.put(elem, qtNode.id);
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+        /*
+
+        Map<String, QTNode> outputSorted = MapSort.sortdescByValue(output);
+//        int topN = 2;
+
+        HashMap<Element, Integer> toKeep = new HashMap<>();
+        double pastTLength = outputSorted.entrySet().iterator().next().getValue().node.text().length();
+        int d = outputSorted.entrySet().iterator().next().getValue().depth;
+        for (Map.Entry<String, QTNode> e : outputSorted.entrySet()){
+            QTNode qtNode = e.getValue();
+            Element txtElem = qtNode.node;
+            String elemText = txtElem.text();
+            double portion = elemText.length() / pastTLength;
+            if (portion > .15 && Math.abs(d - qtNode.depth) < 2){
+                toKeep.put(txtElem, qtNode.id);
+            }
+        //    articleNode =  txtElem;
+
         }
         */
+        Map<Element, Integer> toKeepsorted = MapSort.sortByValue(toKeep);
+        articleNode.addAll(toKeepsorted.keySet());
+
     }
 
     public void analyze1() throws Exception {
@@ -517,33 +550,74 @@ public class ArticleBodyResolver {
     public static void main(String[] args) throws Exception {
 
         String[] urls = {
-                //           "http://www.dailymail.co.uk/news/article-4356348/Carlos-Jackal-awaiting-verdict-Paris-court.html"
-                //           "http://www.nasdaq.com/article/china-stocksfactors-to-watch-on-tuesday-20170327-01268"
-                "http://milwaukeecourieronline.com/index.php/2017/05/27/u-s-senator-tammy-baldwin-statement-on-cbo-score-of-house-passed-health-care-bill/"
-                //truncated
+                "http://www.yomiuri.co.jp/national/20180529-OYT1T50136.html?from=ytop_main8"
+        //        "https://www.duolingo.com/comment/13955228/A-guide-to-the-Russian-word-order"
+          //      "https://www.jpost.com/Blogs/A-Mid-East-Journal/The-trouble-with-Iran-558371"
+           //     "http://dailycaller.com/2018/05/27/iran-deal-architect-chants-death-to-america-john-kerry/"
+             //   "https://www.nytimes.com/2017/04/11/us/politics/sean-spicer-hitler-gas-holocaust-center.html"
+            //               "http://www.dailymail.co.uk/news/article-4356348/Carlos-Jackal-awaiting-verdict-Paris-court.html"
+           //          "https://www.cnet.com/news/heres-how-much-the-galaxy-s8-and-s8-plus-will-cost-you/"
+          //      "https://www.cnet.com/news/heres-how-much-the-galaxy-s8-and-s8-plus-will-cost-you/"
+         //       "https://www.nytimes.com/2017/04/11/us/alabama-governor-robert-bentley-sex-scandal.html?hp&action=click&pgtype=Homepage&clickSource=story-heading&module=second-column-region&region=top-news&WT.nav=top-news"
+            //    "https://www.washingtonpost.com/news/politics/wp/2017/03/29/the-nunes-white-house-question-assessed-minute-by-minute/?utm_term=.e173fe569434"
+         //   "https://www.reuters.com/article/us-tesla-stocks-idUSKBN17F2FF"
                 //  "https://www.nytimes.com/2017/03/29/world/asia/china-taiwan-activist-lee-ming-cheh.html"
-                // "http://www.cnn.com/2017/03/29/politics/senate-filibuster-neil-gorsuch/index.html"
+             //    "http://www.cnn.com/2017/03/29/politics/senate-filibuster-neil-gorsuch/index.html"
+       //     "https://www.msn.com/en-us/news/world/guineas-new-pm-unveils-government/ar-AAxSLyG"
+        //        "http://www.tampabay.com/amid-rape-allegation-jordaan-re-elected-safrica-soccer-boss-ap_sportse89c99a3f2954689943a0302208e4daf"
+       //         "https://www.usnews.com/news/world/articles/2018-05-27/south-africas-opposition-rejects-report-that-party-will-split"
+       //  "https://www.10news.com/newsy/at-least-22-people-dead-14-injured-after-3vehicle-crash-in-uganda"
+           //     "http://www.cnbc.com/2017/03/28/apple-iphone-suppliers-outlook-jpmorgan.html"
 
-                //not working
-                //"http://www.cnbc.com/2017/03/28/apple-iphone-suppliers-outlook-jpmorgan.html"
-
-                //wrong order
-                //"https://www.theatlantic.com/international/archive/2017/03/donald-trump-china-rachman/521055/",
-                // "http://www.express.co.uk/news/uk/784786/marine-a-sentence-reduced-seven-years-alexander-blackman-law-crime"
+              //  "https://www.theatlantic.com/international/archive/2017/03/donald-trump-china-rachman/521055/",
+              //  "http://www.express.co.uk/news/uk/784786/marine-a-sentence-reduced-seven-years-alexander-blackman-law-crime"
         };
 
+        TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+
+            public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+            }
+
+            public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+            }
+        } };
+
+        // Install the all-trusting trust manager
+        SSLContext sc = SSLContext.getInstance("SSL");
+        sc.init(null, trustAllCerts, new java.security.SecureRandom());
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+        final String USER_AGENT = "Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6";
+
+        String allPunc = "。.!?؟¿¡";
         for (String u : urls) {
             logger.info(u);
             try {
-                Document doc = Jsoup.connect(u).get();
-                ArticleBodyResolver abr = new ArticleBodyResolver(doc);
+
+                Document doc = Jsoup.connect(u)
+                        .followRedirects(true)
+                        .referrer("http://www.google.com")
+                        .userAgent(USER_AGENT)
+                        .ignoreContentType(true)
+                        .timeout(10000)
+                        .method(Connection.Method.GET)
+               //         .execute()
+               //         .bodyAsBytes()
+                        .get();
+
+                ArticleBodyResolver abr = new ArticleBodyResolver(doc, 1);
                 abr.analyze3();
                 List<Element> elems = abr.getText();
-                for (Element e : elems) {
-                    logger.info(e.cssSelector() + " / " + e.text());
-                }
+                for (Element e : elems) logger.info(e.tagName() + " | " + e.text());
+
             } catch (Exception e) {
-                logger.error("Error: " + e);
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+                String sStackTrace = sw.toString();
+                logger.error("Error: " + sStackTrace);
             }
         }
     }

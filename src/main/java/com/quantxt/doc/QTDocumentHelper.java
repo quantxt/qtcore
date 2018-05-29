@@ -15,6 +15,8 @@ public interface QTDocumentHelper {
 
     String normalize(String string);
 
+    String removeStopWords(String string);
+
     public String[] getSentences(String text);
 
     String[] getPosTags(String[] text);

@@ -36,6 +36,8 @@ public class URLPattern {
     private String dateSort = "";
     private String seprator = "+";
     private Map<String, String> headers;
+    private boolean adx;
+    private String mode;
 
     public URLPattern(){
 
@@ -54,6 +56,8 @@ public class URLPattern {
         this.dateSort = up.dateSort;
         this.seprator = up.seprator;
         this.headers = up.headers;
+        this.adx = up.adx;
+        this.mode = up.mode;
 
     }
 
@@ -84,6 +88,8 @@ public class URLPattern {
     }
 
     public String getName(){return name;}
+    public String getMode(){return mode;}
+    public boolean getAdx(){return adx;}
     public String getResElement() {return selector;}
     public String getSeprator(){return seprator;}
     public Map<String, String> getHeaders() {return headers;}
@@ -141,7 +147,7 @@ public class URLPattern {
             Matcher query_match = QUERY.matcher(l);
             if (query_match.find()) {
                 for (String search_term : all_search_terms) {
-                    search_term = search_term.toLowerCase().trim().replace(" " , seprator);
+                    search_term = search_term.trim().replace(" " , seprator);
                     String searchLink = l.replace(query_match.group(0), search_term);
                     if (links.contains(searchLink)) continue;
                     links.add(searchLink);
