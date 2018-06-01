@@ -13,5 +13,6 @@ public interface QTExtract {
     public double [] tag(String str);
     public double terSimilarity(String str1, String str2);
     public Map<String, Collection<Emit>> parseNames(String str);
+    public boolean hasEntities();
 
 }

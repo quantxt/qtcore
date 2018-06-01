@@ -10,7 +10,9 @@ import java.util.*;
 
 public class Entity {
 
-    final private static String NAME = "Entity";
+    final public static String ENTITY_TYPE = "Entity";
+    final public static String ENTITY_NAME = "entity";
+
     final private String name;
     final private String type;
     final private boolean isSpeaker;
@@ -21,14 +23,6 @@ public class Entity {
     private String[] context;
     private Trie contextTree;
 
-    /*
-    public Entity(String en, String [] enAlts){
-        name = en;
-        alts = enAlts;
-        isSpeaker = true;
-    }
-    */
-
     public Entity(String type, String en, String [] enAlts, boolean isSpeaker){
         this.type = type;
         name = en;
@@ -38,7 +32,7 @@ public class Entity {
     }
 
     public Entity(String en, String [] enAlts, boolean isSpeaker){
-        this.type = NAME;
+        this.type = ENTITY_TYPE;
         name = en;
         alts = enAlts;
         this.isSpeaker = isSpeaker;

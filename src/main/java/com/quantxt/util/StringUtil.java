@@ -22,6 +22,7 @@ public class StringUtil {
         str = str.replaceAll("\\([^\\)]+\\)", " ");
         str = str.replaceAll("([\\.])+$", " $1");
         str = str.replaceAll("\\s+", " ");
+        str = str.replaceAll("[”“]", "\"");
         return str;
     }
 
