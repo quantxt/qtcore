@@ -32,7 +32,6 @@ public class ArticleBodyResolver {
 
     public static Set<String> NO_TEXT_TAGS = new HashSet<>(Arrays.asList("h1", "caption", "cite", "h2", "audio", "script", "nav", "iframe", "embed", "footer", "form", "figcaption", "img", "video", "figure"));
     public static String PUNCS = "。.!?؟¿¡";
-    public static Pattern PUNCSPattern = Pattern.compile("[" + PUNCS +"]\\s+");
 
 
     private Document doc;
@@ -259,11 +258,9 @@ public class ArticleBodyResolver {
             Element e = textHeavyElements.get(idx);
 
             Elements allEments = e.getAllElements();
-    //        List<Element> textOwnbHeavyElements = getTextElements(e.getAllElements(), 10, 10000);
             List<Element> textOwnbHeavyElements = getTextElements(allEments, 60, 10000);
             if (textOwnbHeavyElements.size() < 1) continue;
 
-  //          List<Element> textOwnElements = getTextElements(e.getAllElements(), 0, 2);
             List<Element> textOwnElements = getTextElements(allEments, 0, 59);
             double totalWords = (double) getTLength(textOwnbHeavyElements);
     //        for (Element et : textOwnbHeavyElements) {
@@ -479,26 +476,6 @@ public class ArticleBodyResolver {
                 break;
             }
         }
-        /*
-
-        Map<String, QTNode> outputSorted = MapSort.sortdescByValue(output);
-//        int topN = 2;
-
-        HashMap<Element, Integer> toKeep = new HashMap<>();
-        double pastTLength = outputSorted.entrySet().iterator().next().getValue().node.text().length();
-        int d = outputSorted.entrySet().iterator().next().getValue().depth;
-        for (Map.Entry<String, QTNode> e : outputSorted.entrySet()){
-            QTNode qtNode = e.getValue();
-            Element txtElem = qtNode.node;
-            String elemText = txtElem.text();
-            double portion = elemText.length() / pastTLength;
-            if (portion > .15 && Math.abs(d - qtNode.depth) < 2){
-                toKeep.put(txtElem, qtNode.id);
-            }
-        //    articleNode =  txtElem;
-
-        }
-        */
         Map<Element, Integer> toKeepsorted = MapSort.sortByValue(toKeep);
         articleNode.addAll(toKeepsorted.keySet());
 
@@ -591,7 +568,6 @@ public class ArticleBodyResolver {
         HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
         final String USER_AGENT = "Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6";
 
-        String allPunc = "。.!?؟¿¡";
         for (String u : urls) {
             logger.info(u);
             try {
@@ -603,8 +579,6 @@ public class ArticleBodyResolver {
                         .ignoreContentType(true)
                         .timeout(10000)
                         .method(Connection.Method.GET)
-               //         .execute()
-               //         .bodyAsBytes()
                         .get();
 
                 ArticleBodyResolver abr = new ArticleBodyResolver(doc, 1);

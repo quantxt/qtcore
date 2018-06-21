@@ -19,6 +19,7 @@ public class URLPattern {
 
     final private static Logger logger = LoggerFactory.getLogger(URLPattern.class);
     final private static Pattern DATE = Pattern.compile("__DATE_(-?[1-9]\\d*|0)");
+    final private static Pattern NDATE = Pattern.compile("__MIN__(-?[1-9]\\d*|0)_(-?[1-9]\\d*|0)_(-?[1-9]\\d*|0)");
     final private static Pattern COUNTER = Pattern.compile("__COUNT_(\\d+)_(\\d+)_(\\d+)__");
     final private static Pattern QUERY   = Pattern.compile("__QUERY__");
     final private static DateTimeFormatter dtf = DateTimeFormat.forPattern("MM/dd/yyyy");
@@ -117,9 +118,28 @@ public class URLPattern {
                     DateTime finaldate = today.plusDays(Integer.parseInt(date_match.group(1)));
                     String date_str = dtf.print(finaldate);
                     searchUrl = searchUrl.replace(date_match.group(0), date_str);
+                    processed.add(searchUrl);
                 }
+            } else if (searchUrl.contains("__MIN__")) {
+                Matcher date_match = NDATE.matcher(searchUrl);
+                while (date_match.find()) {
+                    int end = Integer.parseInt(date_match.group(3));
+                    int start = Integer.parseInt(date_match.group(1));
+                    int offset = Integer.parseInt(date_match.group(2));
+
+                    for (int i=start; i > end; i+=offset){
+                        DateTime start_d = today.plusDays(i+offset);
+                        DateTime end_d = today.plusDays(i-1);
+                        String start_date_str = dtf.print(start_d);
+                        String end_date_str = dtf.print(end_d);
+                        String srchCopy = searchUrl.replace(date_match.group(0), start_date_str);
+                        srchCopy = srchCopy.replace("__MAX__", end_date_str);
+                        processed.add(srchCopy);
+                    }
+                }
+            } else {
+                processed.add(searchUrl);
             }
-            processed.add(searchUrl);
         }
 
         ArrayList<String> counter_added = new ArrayList<>();
@@ -161,7 +181,7 @@ public class URLPattern {
     }
 
     public static void main(String[] args) throws Exception {
-        String bas_google_search_url = "https://www.google.com/search?q=__QUERY__&start=__COUNT_0_12_50__&lr=lang_es&num=50&tbm=nws&tbs=lr:lang_1es,cdr:1,cd_min:01/01/2016,cd_max:";
+        String bas_google_search_url = "https://www.google.com/search?q=__QUERY__&start=__COUNT_0_1_50__&lr=lang_es&num=50&tbm=nws&tbs=lr:lang_1es,cdr:1,cd_min:__MIN__0_-5_-15,cd_max:__MAX__";
         URLPattern up = new URLPattern();
         up.links = new String[] {bas_google_search_url};
         List<String> terms = new ArrayList<>();

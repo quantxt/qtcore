@@ -34,9 +34,11 @@ public class StringUtil {
             return null;
         }
         int strLength = str.length();
+        if (strLength == 0) return null;
         int end = startPos;
         for (int c = 0; c < tokenList.size(); c++) {
             String t = tokenList.get(c);
+            if (t.length() == 0) continue;
             int pos = str.indexOf(t, end);
             if (pos < 0) {
                 return null;
@@ -48,9 +50,11 @@ public class StringUtil {
         return new ExtInterval(startPos, end);
     }
 
-    public static ExtInterval findSpan(String str, List<String> tokenList) {
+    public static ExtInterval findSpan(String str,
+                                       List<String> tokenList) {
         if (tokenList == null || tokenList.size() == 0)
             return null;
+        str = str.trim();
 
         Map<ExtInterval, Integer> allMatahces = new HashMap<>();
         String firstToken = tokenList.get(0);
