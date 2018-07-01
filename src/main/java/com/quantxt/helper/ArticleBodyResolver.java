@@ -20,8 +20,6 @@ import javax.net.ssl.X509TrustManager;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by matin on 3/26/17.
@@ -232,7 +230,6 @@ public class ArticleBodyResolver {
     public Elements getArticleNode() {
         Elements docElements = doc.body().getAllElements();
         docElements.select(".comments-panel").remove();
-  //      List<Element> textHeavyElements = getTextAllElements(docElements, 10, 10000);
         List<Element> textHeavyElements = getTextAllElements(docElements, 60, 10000);
 
         int numWords = 0;
@@ -413,6 +410,7 @@ public class ArticleBodyResolver {
 
             if (length > 30) {
                 Element elem = (Element) node.parent();
+                if (elem == null) return;
                 try {
                     String key = elem.cssSelector();
                     QTNode qtnode = buffer.get(key);
@@ -423,7 +421,7 @@ public class ArticleBodyResolver {
                     }
                     qtnode.length += length;
                 } catch (Exception exp){
-                    logger.error("Jsoup parsing error");
+                    logger.error("Jsoup parsing error " + exp.getMessage());
                 }
 
             }

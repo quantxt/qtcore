@@ -301,46 +301,39 @@ public abstract class QTDocument {
 					}
 				}
 
-				//if still no emit continue
-				if (name_match_curr.size() == 0) {
-					continue;
+				if (name_match_curr.size() != 0) {
+					for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
+						for (Emit matchedName : entType.getValue()) {
+							NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
+							workingChild.addEntity(entType.getKey(), ne.getName());
+						}
+					}
 				}
+			}
 
-				List<ExtInterval> tagged = helper.getNounAndVerbPhrases(rawSent_curr, parts);
-				for (ExtInterval ext : tagged) {
-					if (ext.getType().equals("V")) {
+
+				//if still no emit continue
+	//			if (name_match_curr.size() == 0) {
+	//				continue;
+	//			}
+
+
+			List<ExtInterval> tagged = helper.getNounAndVerbPhrases(rawSent_curr, parts);
+			for (ExtInterval ext : tagged) {
+				switch (ext.getType()) {
+					case ("V") :
 						String verb = rawSent_curr.substring(ext.getStart(), ext.getEnd());
 						DOCTYPE verbType = helper.getVerbType(verb);
 						if (verbType != null) {
 							workingChild.setDocType(verbType);
 						}
-					}
-				}
-
-				for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
-					for (Emit matchedName : entType.getValue()) {
-						NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
-						workingChild.addEntity(entType.getKey(), ne.getName());
-					}
-				}
-
-			} else {
-				List<ExtInterval> tagged = helper.getNounAndVerbPhrases(rawSent_curr, parts);
-				for (ExtInterval ext : tagged) {
-					switch (ext.getType()) {
-						case ("V") :
-							String verb = rawSent_curr.substring(ext.getStart(), ext.getEnd());
-							DOCTYPE verbType = helper.getVerbType(verb);
-							if (verbType != null) {
-								workingChild.setDocType(verbType);
-							}
-						break;
-						case ("N") :
-							String noun = rawSent_curr.substring(ext.getStart(), ext.getEnd());
-							workingChild.addEntity(ENTITY_NAME, noun);
-					}
+					break;
+					case ("N") :
+						String noun = rawSent_curr.substring(ext.getStart(), ext.getEnd());
+						workingChild.addEntity(ENTITY_NAME, noun);
 				}
 			}
+
 
 			if (workingChild.getEntity() == null  || workingChild.getEntity().size() == 0) {
 				logger.debug("Entity is still null or Verb type is not detected: " + orig);

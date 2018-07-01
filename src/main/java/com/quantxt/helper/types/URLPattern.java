@@ -118,8 +118,8 @@ public class URLPattern {
                     DateTime finaldate = today.plusDays(Integer.parseInt(date_match.group(1)));
                     String date_str = dtf.print(finaldate);
                     searchUrl = searchUrl.replace(date_match.group(0), date_str);
-                    processed.add(searchUrl);
                 }
+                processed.add(searchUrl);
             } else if (searchUrl.contains("__MIN__")) {
                 Matcher date_match = NDATE.matcher(searchUrl);
                 while (date_match.find()) {
