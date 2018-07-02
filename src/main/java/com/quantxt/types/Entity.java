@@ -12,6 +12,7 @@ public class Entity {
 
     final public static String ENTITY_TYPE = "Entity";
     final public static String ENTITY_NAME = "entity";
+    final public static String NER_TYPE = "Entity_NER";
 
     final private String name;
     final private String type;

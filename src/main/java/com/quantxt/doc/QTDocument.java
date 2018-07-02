@@ -22,7 +22,7 @@ import com.quantxt.trie.Emit;
 import com.quantxt.types.NamedEntity;
 import com.quantxt.util.StringUtil;
 
-import static com.quantxt.types.Entity.ENTITY_NAME;
+import static com.quantxt.types.Entity.NER_TYPE;
 
 public abstract class QTDocument {
 
@@ -330,7 +330,7 @@ public abstract class QTDocument {
 					break;
 					case ("N") :
 						String noun = rawSent_curr.substring(ext.getStart(), ext.getEnd());
-						workingChild.addEntity(ENTITY_NAME, noun);
+						workingChild.addEntity(NER_TYPE, noun);
 				}
 			}
 
