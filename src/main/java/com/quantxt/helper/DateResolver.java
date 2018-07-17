@@ -92,6 +92,7 @@ public class DateResolver {
     }
 
     private static String cleanTitle(String ttl){
+        if (ttl == null) return null;
         ttl = ttl.replaceAll("\\s+[\\|\\-]\\s+.*$", "");
         ttl = ttl.replaceAll("\\s+\\|\\s*$", "");
         return ttl;
@@ -110,50 +111,52 @@ public class DateResolver {
         // get the earliest date when pasre the attributes
         // but after the title!
         String title = cleanTitle(doc.title());
-        Elements titleMatching  = doc.body().select("*:containsOwn(" + title + ")");
-        List<Element> elements = doc.body().select("*");
         List<Element> afterTitle = new ArrayList<>();
         List<Element> beforeTitle = new ArrayList<>();
-        if (titleMatching != null){
-            for (Element matchingElem : titleMatching) {
-                int matchedLevel = ArticleBodyResolver.getLevel(matchingElem);
-                int levelLowRange = matchedLevel - 2;
-                int levelHighRange = matchedLevel + 4;
-                for (int i = 0; i < elements.size(); i++) {
-                    Element e = elements.get(i);
-                    if (!e.equals(matchingElem)) continue;
-      //              int indexBefore = Math.max(0, i - 10);
-      //              int indexAfter = Math.min(elements.size(), i + 100);
-                    int numAdded = 0;
-                    int index = i-1;
-                    while (numAdded < 10 && index>=0){
-                        Element eb = elements.get(index--);
-                        int level = ArticleBodyResolver.getLevel(eb);
-                        if (level > levelHighRange || level < levelLowRange) continue;
-                        numAdded++;
-                        beforeTitle.add(eb);
+        List<Element> elements = doc.body().select("*");
+        if (title != null && !title.isEmpty()) {
+            Elements titleMatching = doc.body().select("*:containsOwn(" + title + ")");
+            if (titleMatching != null) {
+                for (Element matchingElem : titleMatching) {
+                    int matchedLevel = ArticleBodyResolver.getLevel(matchingElem);
+                    int levelLowRange = matchedLevel - 2;
+                    int levelHighRange = matchedLevel + 4;
+                    for (int i = 0; i < elements.size(); i++) {
+                        Element e = elements.get(i);
+                        if (!e.equals(matchingElem)) continue;
+                        //              int indexBefore = Math.max(0, i - 10);
+                        //              int indexAfter = Math.min(elements.size(), i + 100);
+                        int numAdded = 0;
+                        int index = i - 1;
+                        while (numAdded < 10 && index >= 0) {
+                            Element eb = elements.get(index--);
+                            int level = ArticleBodyResolver.getLevel(eb);
+                            if (level > levelHighRange || level < levelLowRange) continue;
+                            numAdded++;
+                            beforeTitle.add(eb);
+                        }
+                        numAdded = 0;
+                        index = i - 1;
+                        while (numAdded < 100 && index < elements.size()) {
+                            Element eb = elements.get(index++);
+                            int level = ArticleBodyResolver.getLevel(eb);
+                            //          logger.info(level + " : " + eb.text());
+                            if (level > levelHighRange || level < levelLowRange) continue;
+                            numAdded++;
+                            afterTitle.add(eb);
+                        }
+                        //                 beforeTitle.addAll(elements.subList(indexBefore, i));
+                        //                 afterTitle.addAll(elements.subList(i, indexAfter));
+                        break;
                     }
-                    numAdded = 0;
-                    index = i-1;
-                    while (numAdded < 100 && index < elements.size()){
-                        Element eb = elements.get(index++);
-                        int level = ArticleBodyResolver.getLevel(eb);
-              //          logger.info(level + " : " + eb.text());
-                        if (level > levelHighRange || level < levelLowRange) continue;
-                        numAdded++;
-                        afterTitle.add(eb);
-                    }
-   //                 beforeTitle.addAll(elements.subList(indexBefore, i));
-   //                 afterTitle.addAll(elements.subList(i, indexAfter));
-                    break;
                 }
             }
-        }
 
 
-        if (afterTitle.size() != 0){
-            //we didn't find the title!
-            elements = afterTitle;
+            if (afterTitle.size() != 0) {
+                //we didn't find the title!
+                elements = afterTitle;
+            }
         }
 
 
@@ -270,7 +273,9 @@ public class DateResolver {
     }
 
     private  static DateTime findDate(String date_string){
-        if (date_string == null || date_string.length() > 400 || date_string.split("\\s+").length > 20) return null;
+        if (date_string == null) return null;
+        date_string = date_string.replace("\u00a0"," ");
+        if (date_string.length() > 400 || date_string.split("\\s+").length > 20) return null;
         List<DateResolver> allDates = new ArrayList<>();
         for (DateStrHelper e : DATE_PATTERN_MAP) {
             Pattern p = e.pattern;
@@ -329,6 +334,9 @@ public class DateResolver {
     public static void main(String[] args) throws Exception {
         String txt  = "FW: Interprint Inc; Morten Enterprises Inc - Wind Submission; Eff 7/15/2018";
         DateTime dt = DateResolver.resolveDateStr(txt);
+
+        Document doc = Jsoup.connect("https://www.sec.gov/Archives/edgar/data/34088/000003408817000041/xom10q2q2017.htm").get();
+        dt = DateResolver.resolveDate(doc);
         if (dt != null) {
             logger.info(dt.toString());
         } else {

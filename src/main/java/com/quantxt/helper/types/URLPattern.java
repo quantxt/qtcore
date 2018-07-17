@@ -35,6 +35,7 @@ public class URLPattern {
     private String sBodyField;
     private String dateField;
     private String dateSort = "";
+    private int analysis_mode = 2;
     private String seprator = "+";
     private Map<String, String> headers;
     private boolean adx;
@@ -89,6 +90,7 @@ public class URLPattern {
     }
 
     public String getName(){return name;}
+    public int getAnalysis_mode(){return analysis_mode;}
     public String getMode(){return mode;}
     public boolean getAdx(){return adx;}
     public String getResElement() {return selector;}
@@ -105,7 +107,8 @@ public class URLPattern {
         this.links = links;
     }
 
-    public void addQueryAndPaging(Collection<String> all_search_terms) throws UnsupportedEncodingException
+    public void addQueryAndPaging(Collection<String> all_search_terms,
+                                  DateTime fromDate) throws UnsupportedEncodingException
     {
         ArrayList<String> processed = new ArrayList<>();
 
@@ -130,6 +133,8 @@ public class URLPattern {
                     for (int i=start; i > end; i+=offset){
                         DateTime start_d = today.plusDays(i+offset);
                         DateTime end_d = today.plusDays(i-1);
+                        // make sure this is after the anticipated fromDate
+                        if (fromDate != null && end_d.isBefore(fromDate)) continue;
                         String start_date_str = dtf.print(start_d);
                         String end_date_str = dtf.print(end_d);
                         String srchCopy = searchUrl.replace(date_match.group(0), start_date_str);
@@ -186,7 +191,7 @@ public class URLPattern {
         up.links = new String[] {bas_google_search_url};
         List<String> terms = new ArrayList<>();
         terms.add("iran india");
-        up.addQueryAndPaging(terms);
+        up.addQueryAndPaging(terms, null);
         for (String s : up.links){
             logger.info(s);
         }
