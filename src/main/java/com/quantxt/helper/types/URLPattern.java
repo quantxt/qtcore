@@ -35,11 +35,13 @@ public class URLPattern {
     private String sBodyField;
     private String dateField;
     private String dateSort = "";
-    private int analysis_mode = 2;
     private String seprator = "+";
     private Map<String, String> headers;
     private boolean adx;
-    private String mode;
+    private boolean fastParent;
+    private boolean isTs = true;
+    private String to;
+    private String from;
 
     public URLPattern(){
 
@@ -59,7 +61,10 @@ public class URLPattern {
         this.seprator = up.seprator;
         this.headers = up.headers;
         this.adx = up.adx;
-        this.mode = up.mode;
+        this.fastParent = up.fastParent;
+        this.to = up.to;
+        this.from = up.from;
+        this.isTs = up.isTs;
 
     }
 
@@ -84,21 +89,28 @@ public class URLPattern {
     public String getsTitleField(){
         return sTitleField;
     }
-
     public String getsBodyField(){
         return sBodyField;
     }
-
     public String getName(){return name;}
-    public int getAnalysis_mode(){return analysis_mode;}
-    public String getMode(){return mode;}
+    public boolean isFastParent(){return fastParent;}
     public boolean getAdx(){return adx;}
     public String getResElement() {return selector;}
     public String getSeprator(){return seprator;}
     public Map<String, String> getHeaders() {return headers;}
+    public String getTo(){
+        return to;
+    }
+    public String getFrom(){
+        return from;
+    }
+    public boolean isTs(){
+        return isTs;
+    }
     public String getDateField(){
         return dateField;
     }
+
 
     public void setUrlPattern(String p){
         urlPattern = p;
@@ -135,10 +147,10 @@ public class URLPattern {
                         DateTime end_d = today.plusDays(i-1);
                         // make sure this is after the anticipated fromDate
                         if (fromDate != null && end_d.isBefore(fromDate)) continue;
-                        String start_date_str = dtf.print(start_d);
-                        String end_date_str = dtf.print(end_d);
-                        String srchCopy = searchUrl.replace(date_match.group(0), start_date_str);
-                        srchCopy = srchCopy.replace("__MAX__", end_date_str);
+                        from = dtf.print(start_d);
+                        to = dtf.print(end_d);
+                        String srchCopy = searchUrl.replace(date_match.group(0), from);
+                        srchCopy = srchCopy.replace("__MAX__", to);
                         processed.add(srchCopy);
                     }
                 }
