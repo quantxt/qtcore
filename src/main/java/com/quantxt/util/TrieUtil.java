@@ -28,6 +28,8 @@ public class TrieUtil {
                     break;
                 case "Action" : verbTybe = DOCTYPE.Action;
                     break;
+                case "Development" : verbTybe = DOCTYPE.Development;
+                    break;
                 case "Partnership" : verbTybe = DOCTYPE.Partnership;
                     break;
                 case "Legal" : verbTybe = DOCTYPE.Legal;
