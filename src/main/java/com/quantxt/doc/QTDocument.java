@@ -33,7 +33,7 @@ public abstract class QTDocument {
 
 	final private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 	public enum DOCTYPE {Headline, Action, Statement, Aux, Speculation,
-		Legal, Acquisition, Production, Partnership, Employment
+		Legal, Acquisition, Production, Partnership, Employment, Development
 	}
 
 	private static Gson gson = new Gson();

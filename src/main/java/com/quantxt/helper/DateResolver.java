@@ -2,6 +2,7 @@ package com.quantxt.helper;
 
 import com.google.gson.internal.LinkedHashTreeMap;
 import com.quantxt.helper.types.DateStrHelper;
+import com.quantxt.interval.Interval;
 import com.quantxt.types.MapSort;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -291,6 +292,24 @@ public class DateResolver {
             return null;
         }
         return getBestMatch(allDates);
+    }
+
+    // TODO: This method going to become the main method to call for extraction
+
+    public ArrayList<Interval> resolveDate(String str){
+        ArrayList<Interval> dates = new ArrayList<>();
+        if (str == null) return null;
+        str = str.replace("\u00a0"," ");
+        for (DateStrHelper e : DATE_PATTERN_MAP) {
+            Pattern p = e.pattern;
+            Matcher m = p.matcher(str);
+            if (m.find()) {
+                DateResolver dr = normalizeDateStr(str, m, e.digits);
+                if (dr == null) continue;
+                dates.add(new Interval(m.start(), m.end()));
+            }
+        }
+        return dates;
     }
 
     private static DateTime getBestMatch(List<DateResolver> allDates){
