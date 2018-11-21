@@ -68,6 +68,9 @@ public class StringUtil {
             }
             cursor = pos + firstToken.length();
         }
+        if (allMatahces.size() == 0){
+            return null;
+        }
         //find shortest ..
         // if there multiple shorts then we pick the last one (the one closer to the end of utterance)
         Map<ExtInterval, Integer> sorted = MapSort.sortByValue(allMatahces);
@@ -82,8 +85,25 @@ public class StringUtil {
                 res = key;
             }
         }
-
         return res;
+    }
 
+    public static ExtInterval [] findAllSpans(String str, String[] tokens){
+        ExtInterval [] allSpans = new ExtInterval[tokens.length];
+
+        int cursor = 0;
+        for (int i=0; i<tokens.length; i++){
+            String t = tokens[i];
+            int pos = str.indexOf(t, cursor);
+            if (pos < 0) {
+                logger.error("Token {} as not found in the string {}", t , str);
+                return null;
+            }
+            ExtInterval exi = new ExtInterval(pos, pos + t.length());
+            allSpans[i] = exi;
+            cursor = exi.getEnd();
+
+        }
+        return allSpans;
     }
 }

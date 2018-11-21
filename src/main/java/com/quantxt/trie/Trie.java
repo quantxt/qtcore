@@ -1,10 +1,14 @@
 package com.quantxt.trie;
 
+import com.google.gson.Gson;
 import com.quantxt.interval.IntervalTree;
 import com.quantxt.interval.Intervalable;
 import com.quantxt.trie.handler.DefaultEmitHandler;
 import com.quantxt.trie.handler.EmitHandler;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingDeque;
 
@@ -471,6 +475,25 @@ public class Trie {
          */
         public TrieBuilder removeOverlaps() {
             return ignoreOverlaps();
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        File file = new File("/Users/matin/git/QTCurat/o.txt");
+
+        TrieBuilder b = builder();
+        b.addKeyword("中国商", "中国商");
+        Trie tree = b.build();
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        Gson gson = new Gson();
+
+        String st;
+        while ((st = br.readLine()) != null){
+            Collection<Emit> emits = tree.parseText(st);
+            if (emits.size() == 0) continue;
+            for (Emit e : emits){
+                System.out.println(st);
+            }
         }
     }
 }

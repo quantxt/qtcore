@@ -21,7 +21,7 @@ public interface QTDocumentHelper {
 
     String[] getPosTags(String[] text);
 
-    List<ExtInterval> getNounAndVerbPhrases(String orig, String[] parts);
+    List<ExtInterval> getNounAndVerbPhrases(String orig, String[] tokens);
 
     Trie getVerbTree();
 

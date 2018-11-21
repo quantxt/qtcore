@@ -23,6 +23,7 @@ import com.quantxt.types.NamedEntity;
 import com.quantxt.util.StringUtil;
 
 import static com.quantxt.types.Entity.NER_TYPE;
+import static com.quantxt.util.StringUtil.findAllSpans;
 
 public abstract class QTDocument {
 
@@ -40,7 +41,7 @@ public abstract class QTDocument {
 	private static Logger logger = LoggerFactory.getLogger(QTDocument.class);
 
 	protected String title;
-	protected String rawText;
+	protected String rawTitle;
 	protected String englishTitle;
 	protected String body;
 	protected Language language;
@@ -110,6 +111,10 @@ public abstract class QTDocument {
 
 	public String getLink(){
 		return link;
+	}
+
+	public String getRawTitle(){
+		return rawTitle;
 	}
 
 	public String getTitle(){
@@ -266,15 +271,18 @@ public abstract class QTDocument {
 		for (int i = 0; i < numSent; i++)
 		{
 			QTDocument workingChild = childs.get(i);
-			final String orig = StringUtil.removePrnts(workingChild.getTitle()).trim();
-			final String origBefore = i == 0 ? title : StringUtil.removePrnts(childs.get(i - 1).getTitle()).trim();
+			final String rawSent_curr = workingChild.getTitle();
+			final String rawSent_before = i == 0 ? title : childs.get(i - 1).getTitle();
 
-			String rawSent_curr = orig;
+//			final String orig = StringUtil.removePrnts(workingChild.getTitle()).trim();
+//			final String origBefore = i == 0 ? title : StringUtil.removePrnts(childs.get(i - 1).getTitle()).trim();
+
+//			String rawSent_curr = orig;
 
 			List<String> tokens = helper.tokenize(rawSent_curr);
 			String [] parts = tokens.toArray(new String[tokens.size()]);
 			if (! helper.isSentence(rawSent_curr, tokens)) continue;
-
+			final String orig_tokenized = String.join(" ", parts);
 /*
             try {
                 Files.write(Paths.get("snp500.txt"), (orig  +"\n").getBytes(), StandardOpenOption.APPEND);
@@ -284,18 +292,19 @@ public abstract class QTDocument {
 */
 
 			if (speaker != null && speaker.hasEntities()) {
-				Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(orig);
+				Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(orig_tokenized);
 				if (name_match_curr.size() == 0) {
-					Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(origBefore);
+					final String before_tokenized = String.join(" ", helper.tokenize(rawSent_before));
+					Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(before_tokenized);
 					for (Map.Entry<String, Collection<Emit>> entType : name_match_befr.entrySet()) {
 						Collection<Emit> ent_set = entType.getValue();
 						if (ent_set.size() != 1) continue;
 						// simple co-ref for now
 						if (helper.getPronouns().contains(parts[0])) {
-							Emit matchedName = ent_set.iterator().next();
-							String keyword = matchedName.getKeyword();
-							parts[0] = keyword;
-							rawSent_curr = String.join(" ", parts);
+				//			Emit matchedName = ent_set.iterator().next();
+				//			String keyword = matchedName.getKeyword();
+				//			parts[0] = keyword;
+				//			rawSent_curr = String.join(" ", parts);
 							name_match_curr.put(entType.getKey(), ent_set);
 						}
 					}
@@ -306,6 +315,12 @@ public abstract class QTDocument {
 						for (Emit matchedName : entType.getValue()) {
 							NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
 							workingChild.addEntity(entType.getKey(), ne.getName());
+					//		String tokezined_entity = matchedName
+					//		String [] entity_tokens = tokezined_entity.split("\\s+");
+					//		ExtInterval [] position = findAllSpans(tokezined_entity, entity_tokens);
+					//		if (position == null) continue;
+					//		String orig_name_entity = rawSent_curr.substring(position[0].getStart(), position[position.length-1].getEnd());
+					//		workingChild.addEntity(entType.getKey(), orig_name_entity);
 						}
 					}
 				}
@@ -316,7 +331,6 @@ public abstract class QTDocument {
 	//			if (name_match_curr.size() == 0) {
 	//				continue;
 	//			}
-
 
 			List<ExtInterval> tagged = helper.getNounAndVerbPhrases(rawSent_curr, parts);
 			for (ExtInterval ext : tagged) {
@@ -336,12 +350,12 @@ public abstract class QTDocument {
 
 
 			if (workingChild.getEntity() == null  || workingChild.getEntity().size() == 0) {
-				logger.debug("Entity is still null or Verb type is not detected: " + orig);
+				logger.debug("Entity is still null or Verb type is not detected: " + rawSent_curr);
 				continue;
 			}
 
 
-			workingChild.setBody(origBefore + " " + orig);
+			workingChild.setBody(rawSent_before + " " + rawSent_curr);
 			quotes.add(workingChild);
 		}
 
@@ -396,6 +410,8 @@ public abstract class QTDocument {
 	}
 
 	public void setDate(DateTime d){date = d; }
+
+	public void setRawTitle(String s){rawTitle = s; }
 
 	public void addFacts(String key, Object val){
 		if (facts == null){
