@@ -1,8 +1,7 @@
 package com.quantxt.helper;
 
-import com.google.gson.internal.LinkedHashTreeMap;
 import com.quantxt.helper.types.DateStrHelper;
-import com.quantxt.interval.Interval;
+import com.quantxt.helper.types.ExtInterval;
 import com.quantxt.types.MapSort;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -22,6 +21,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.quantxt.helper.types.ExtInterval.ExtType.DATE;
+
 /**
  * Created by matin on 3/22/17.
  */
@@ -34,6 +35,7 @@ public class DateResolver {
     final private static String DAY_STR = "([0123][0-9]|[1-9])";
     final private static String MONTH_STR = "([01][0-9]|[1-9])";
     final private static String YEAR_STR = "([12]\\d{3})";
+    final private static DateTimeFormatter MonthFormat = DateTimeFormat.forPattern("MMM");
 
     static {
  //       DATE_PATTERN_MAP.put(Pattern.compile("(?:^|\\s)" + MONTH_NAME_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{3, 1, 2});
@@ -44,11 +46,11 @@ public class DateResolver {
         dd/Month/yy
         dd/MM/yy
          */
-        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile(MONTH_NAME_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{3, 1, 2}));
-        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile(MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{3, 1, 2}));
-        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile(YEAR_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + "(?:T|\\s|\\b)"), new int[]{1, 2, 3}));
-        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile(DAY_STR + DATE_SEPARATOR_STR + MONTH_NAME_STR + DATE_SEPARATOR_STR + YEAR_STR + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{3, 2, 1}));
-        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile(DAY_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + YEAR_STR + "(?:T|\\s|\\b)"), new int[]{3, 2, 1}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_NAME_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+YEAR_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + ")" + "(?:T|\\s|\\b)"), new int[]{2, 3, 4}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_NAME_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{4, 3, 2}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + "(?:T|\\s|\\b)"), new int[]{4, 3, 2}));
     }
 
     private static DateTimeParser[] DATE_PARSER = {
@@ -217,9 +219,20 @@ public class DateResolver {
     {
         StringBuilder sb = new StringBuilder();
         // check the day and month numbers are valid
-        if (vals[0] > 2060) return null;
-        if (vals[1] > 12) return null;
-        if (vals[2] > 31) return null;
+        //validate month
+        String month = m.group(vals[1]);
+        try {
+            if (Integer.parseInt(m.group(vals[0])) > 2060) return null;
+            if (Integer.parseInt(month) > 12) return null;
+            if (Integer.parseInt(m.group(vals[2])) > 31) return null;
+        } catch (NumberFormatException ne){
+            try {
+                MonthFormat.parseDateTime(month);
+            } catch (Exception e){
+                logger.error("Not a valid month {}", month);
+                return null;
+            }
+        }
 
         sb.append(m.group(vals[0]))
                 .append(" ")
@@ -250,10 +263,15 @@ public class DateResolver {
         date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s+\\-" , "$1\\-");
         date_corrected_str = date_corrected_str.replace("CT" , "CST");
         date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s*(am|pm|AM|PM)\\s+(UTC|EST|PST|CST|MST)?.*$", "$1 $2 $3");
+        date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s+(UTC|EST|PST|CST|MST).*$", "$1 $2");
+
         // this is ba rule from here : http://giftedviz.com/2017/05/17/bank-of-england-holds-rates-in-7-1-vote/
         // 17 May 2017, 10:58 | Darnell Patrick
         date_corrected_str = date_corrected_str.replaceAll("\\|\\s+.*$", "");
         date_corrected_str = date_corrected_str.trim();
+
+        // now let's remove whatever if beyonf am/pm or timezone or hours
+
 
         try {
             DateTime date_time = date_time_formatter.parseDateTime(date_corrected_str);
@@ -265,12 +283,11 @@ public class DateResolver {
                 date_time = date_time.withZoneRetainFields(DateTimeZone.UTC);
                 return new DateResolver(date_time, date_corrected_str.length(), false);
             } catch (Exception e){
-                logger.debug("Time is not valid " + e);
+                logger.debug("Time was not parsed returning the date {} {}", date_corrected_str , justDate);
             }
 
         }
-        return null;
-   //     return new DateResolver(justDate, date_corrected_str.length(), false);
+        return new DateResolver(justDate, date_corrected_str.length(), false);
     }
 
     private  static DateTime findDate(String date_string){
@@ -296,18 +313,37 @@ public class DateResolver {
 
     // TODO: This method going to become the main method to call for extraction
 
-    public ArrayList<Interval> resolveDate(String str){
-        ArrayList<Interval> dates = new ArrayList<>();
-        if (str == null) return null;
-        str = str.replace("\u00a0"," ");
+    private static ExtInterval datefinderHelper(String substr, int offset){
         for (DateStrHelper e : DATE_PATTERN_MAP) {
             Pattern p = e.pattern;
-            Matcher m = p.matcher(str);
+            Matcher m = p.matcher(substr);
             if (m.find()) {
-                DateResolver dr = normalizeDateStr(str, m, e.digits);
+                DateResolver dr = normalizeDateStr(substr, m, e.digits);
                 if (dr == null) continue;
-                dates.add(new Interval(m.start(), m.end()));
+                ExtInterval ext = new ExtInterval(m.start() + offset, m.end() -1 +offset);
+                ext.setType(DATE);
+                ext.setDatevalue(dr.date);
+                ext.setCustomData(m.group(1));
+                return ext;
             }
+        }
+        return null;
+    }
+
+    public static ArrayList<ExtInterval> resolveDate(String str){
+        if (str == null) return null;
+        ArrayList<ExtInterval> dates = new ArrayList<>();
+        str = str.replace("\u00a0"," ");
+        String string_copy = str;
+        int offset = 0;
+        while (true){
+            ExtInterval ext = datefinderHelper(string_copy, offset);
+            if (ext == null) {// didn't find anything.. time to give up!
+                break;
+            }
+            string_copy = string_copy.substring(ext.getEnd() - offset);
+            offset = ext.getEnd();
+            dates.add(ext);
         }
         return dates;
     }

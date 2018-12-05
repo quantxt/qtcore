@@ -15,17 +15,11 @@ import java.util.concurrent.LinkedBlockingDeque;
 import static java.lang.Character.isWhitespace;
 
 
-/**
- * Based on the Aho-Corasick white paper, Bell technologies:
- * http://cr.yp.to/bib/1975/aho.pdf
- *
- * @author Robert Bor
- */
 public class Trie {
 
     private final TrieConfig trieConfig;
-
     private final State rootState;
+
 
     private Trie(final TrieConfig trieConfig) {
         this.trieConfig = trieConfig;

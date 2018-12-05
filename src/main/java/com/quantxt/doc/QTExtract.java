@@ -8,6 +8,7 @@ import java.util.Map;
 /**
  * Created by matin on 8/18/17.
  */
+
 public interface QTExtract {
 
     public double [] tag(String str);

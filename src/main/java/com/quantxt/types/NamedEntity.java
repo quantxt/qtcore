@@ -12,7 +12,6 @@ import java.util.TreeSet;
  */
 public class NamedEntity {
 
-    final public static String PERSON = "Person";
     final public static String ENTITY = "Entity";
 
     @JsonIgnore

@@ -69,30 +69,6 @@ public class Entity {
         }
     }
 
-    /*
-
-    public void addPerson(String en, List<String> enAlts){
-        NamedEntity namedEntity = new NamedEntity(en, enAlts);
-        namedEntity.setEntity(this);
-        if (namedEntities == null) {
-            namedEntities = new ArrayList<>();
-            namedEntities.add(namedEntity);
-        } else {
-            boolean exists = false;
-            for (NamedEntity ne : namedEntities) {
-                if (en.equals(ne.getName())) {
-                    ne.addAlts(enAlts);
-                    exists = true;
-                    break;
-                }
-            }
-            if (!exists){
-                namedEntities.add(namedEntity);
-            }
-        }
-    }
-    */
-
     public void addContext(String [] cs){
         if (cs != null) {
             context = cs;

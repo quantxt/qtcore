@@ -1,14 +1,17 @@
 package com.quantxt.helper;
 
+import com.quantxt.helper.types.ExtInterval;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -94,6 +97,7 @@ public class DateResolverTest {
     }
 
     @Test
+    @Ignore
     public void reuters_2() {
         //http://www.reuters.com/article/us-usa-fed-minutes-idUSKBN18K2L5
         DateTime ed = new DateTime("2017-05-24T14:59:00.000-04:00").withZone(DateTimeZone.UTC);
@@ -177,7 +181,7 @@ public class DateResolverTest {
     @Test
     public void newswire_1() {
         //http://www.newswire.ca/news-releases/bank-of-canada-unveils-commemorative-bank-note-to-celebrate-canadas-150th-anniversary-of-confederation-618646013.html
-        DateTime ed = new DateTime("2017-04-07T00:00:00").withZoneRetainFields(DateTimeZone.UTC);
+        DateTime ed = new DateTime("2017-04-07T04:00:00").withZoneRetainFields(DateTimeZone.UTC);
         Document doc = getDocument("/newswire-bank-of-canada.html");
         DateTime date = DateResolver.resolveDate(doc);
         assertTrue("Expected " + ed + " but was " + date, date.equals(ed));
@@ -187,14 +191,39 @@ public class DateResolverTest {
     public void prnnews_1() {
         //http://www.prnewswire.com/news-releases/dexia-and-cognizant-in-exclusive-talks-for-future-collaboration-on-information-technology-and-business-process-services-300459093.html
         //Has to detect hour : 2:42 ET
-        DateTime ed = new DateTime("2017-05-17T00:00:00").withZoneRetainFields(DateTimeZone.UTC);
+        DateTime ed = new DateTime("2017-05-17T10:42:00.000Z").withZoneRetainFields(DateTimeZone.UTC);
         Document doc = getDocument("/prnnews-dexia-and-cognizant.html");
         DateTime date = DateResolver.resolveDate(doc);
-        logger.info("Your date is " + date + " " + date.getZone() + " / " + ed.getZone());
+        logger.info("Your date is " + date + " " + ed + " " + date.getZone() + " / " + ed.getZone());
         assertTrue("Expected " + ed + " but was " + date, date.equals(ed));
     }
 
+    @Test
+    public void datestring_resolve1() {
+        DateTime ed = new DateTime("2018-12-15T00:00:00");
+        String str = "Early adoption is permitted for fiscal years beginning after December 15 2018, and interim periods within those fiscal years.";
+        ArrayList<ExtInterval> dates = DateResolver.resolveDate(str);
+        assertTrue("Expected " + ed + " but was " + dates.get(0).getDatevalue(), dates.get(0).getDatevalue().equals(ed));
+    }
 
+    @Test
+    public void datestring_resolve2() {
+        DateTime ed1 = new DateTime("2018-09-30T00:00:00");
+        DateTime ed2 = new DateTime("2017-09-24T00:00:00");
+        String str = "For the Nine Months Ended     (In thousands)   September 30, 2018   September 24, 2017   % Change   September 30, 2018   September 24, 2017";
+        ArrayList<ExtInterval> dates = DateResolver.resolveDate(str);
+        assertTrue("Expected " + ed1 + " but was " + dates.get(0).getDatevalue(), dates.get(0).getDatevalue().equals(ed1));
+        assertTrue("Expected " + ed2 + " but was " + dates.get(1).getDatevalue(), dates.get(1).getDatevalue().equals(ed2));
+        assertTrue("Expected September 24, 2017" + " but was " + dates.get(3).getCustomData() , dates.get(3).getCustomData().equals("September 24, 2017"));
+
+    }
+
+    @Test
+    public void datestring_resolve3() {
+        String str ="22:31:45.736 [main] INFO  com.quantxt.nlp.types.PDFManager - bb: Yes   o     No  x Number of shares of each class of the registrant�s common stock outstanding as of October 30, 2018 (exclusive of treasury shares):  Class A Common Stock 164,146,697 shares Class B Common Stock 803,408 shares   THE NEW YORK TIMES COMPANY INDEX           PART I       Financial Information   1 Item 1   Financial Statements   1       Condensed Consolidated Balance Sheets as of September 30, 2018  (unaudited) and December 31, 2017   1       Condensed Consolidated Statements of Operations (unaudited) for the quarters and nine months ended September 30, 2018 and September 24, 2017   3       Condensed Consolidated Statements of Comprehensive Income (unaudited) for the quarters and nine months ended September 30, 2018 and September 24, 2017   5       Condensed Consolidated Statements of Changes In Stockholder�s Equity (unaudited) as of September 30, 2018 and September 24, 2017   6       Condensed Consolidated Statements of Cash Flows (unaudited) for the nine months ended September 30, 2018 and September 24, 2017   7       Notes to the Condensed Consolidated Financial Statements   8 Item 2   Management�s Discussion and Analysis of Financial Condition and Results of Operations   25 Item 3   Quantitative and Qualitative Disclosures about Market Risk   38 Item 4   Controls and Procedures   39     PART II       Other Information   40 Item 1   Legal Proceedings   40 Item 1A   Risk Factors   40 Item 2   Unregistered Sales of Equity Securities and Use of Proceeds   40 Item 6   Exhibits   41 PART I. FINANCIAL INFORMATION Item 1.";
+        ArrayList<ExtInterval> dates = DateResolver.resolveDate(str);
+        assertTrue(dates.size() == 11);
+    }
     private Document getDocument(String n) {
         try {
             InputStream in = getClass().getResourceAsStream(n);
