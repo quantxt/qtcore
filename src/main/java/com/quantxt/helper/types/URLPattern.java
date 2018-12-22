@@ -33,6 +33,7 @@ public class URLPattern {
     private String selector;
     private String sTitleField;
     private String sBodyField;
+    private String body_selector;
     private String dateField;
     private String dateSort = "";
     private String seprator = "+";
@@ -40,8 +41,12 @@ public class URLPattern {
     private boolean adx;
     private boolean fastParent;
     private boolean isTs = true;
+    private boolean capline = false;
+    private boolean fastChild = true;
     private String to;
     private String from;
+    private String [] include_patterns;
+    private String [] exclude_patterns;
 
     public URLPattern(){
 
@@ -65,6 +70,11 @@ public class URLPattern {
         this.to = up.to;
         this.from = up.from;
         this.isTs = up.isTs;
+        this.fastChild = up.fastChild;
+        this.include_patterns = up.include_patterns;
+        this.exclude_patterns = up.exclude_patterns;
+        this.capline = up.capline;
+        this.body_selector = up.body_selector;
 
     }
 
@@ -94,7 +104,10 @@ public class URLPattern {
     }
     public String getName(){return name;}
     public boolean isFastParent(){return fastParent;}
+    public boolean isFastChild(){return fastChild;}
     public boolean getAdx(){return adx;}
+    public boolean getCapline(){return capline;}
+    public String getBodySelector(){return body_selector;}
     public String getResElement() {return selector;}
     public String getSeprator(){return seprator;}
     public Map<String, String> getHeaders() {return headers;}
@@ -110,6 +123,12 @@ public class URLPattern {
     public String getDateField(){
         return dateField;
     }
+    public String [] getInclude_patterns(){
+        return include_patterns;
+    }
+    public String [] getExclude_patterns(){
+        return exclude_patterns;
+    }
 
 
     public void setUrlPattern(String p){
@@ -120,13 +139,12 @@ public class URLPattern {
     }
 
     public void addQueryAndPaging(Collection<String> all_search_terms,
-                                  DateTime fromDate) throws UnsupportedEncodingException
-    {
+                                  DateTime fromDate) throws UnsupportedEncodingException {
         ArrayList<String> processed = new ArrayList<>();
 
         DateTime today = new DateTime();
         //check for date
-        for (String  searchUrl : links) {
+        for (String searchUrl : links) {
             if (searchUrl.contains("__DATE_")) {
                 Matcher date_match = DATE.matcher(searchUrl);
                 while (date_match.find()) {
@@ -142,9 +160,9 @@ public class URLPattern {
                     int start = Integer.parseInt(date_match.group(1));
                     int offset = Integer.parseInt(date_match.group(2));
 
-                    for (int i=start; i > end; i+=offset){
-                        DateTime start_d = today.plusDays(i+offset);
-                        DateTime end_d = today.plusDays(i-1);
+                    for (int i = start; i > end; i += offset) {
+                        DateTime start_d = today.plusDays(i + offset);
+                        DateTime end_d = today.plusDays(i - 1);
                         // make sure this is after the anticipated fromDate
                         if (fromDate != null && end_d.isBefore(fromDate)) continue;
                         from = dtf.print(start_d);
@@ -160,7 +178,7 @@ public class URLPattern {
         }
 
         ArrayList<String> counter_added = new ArrayList<>();
-        for (String  searchUrl : processed) {
+        for (String searchUrl : processed) {
             Matcher counter_match = COUNTER.matcher(searchUrl);
 
             if (counter_match.find()) {
@@ -180,11 +198,11 @@ public class URLPattern {
         }
 
         Set<String> links = new HashSet<>();
-        for (String l : counter_added){
+        for (String l : counter_added) {
             Matcher query_match = QUERY.matcher(l);
             if (query_match.find()) {
                 for (String search_term : all_search_terms) {
-                    search_term = search_term.trim().replace(" " , seprator);
+                    search_term = search_term.trim().replace(" ", seprator);
                     String searchLink = l.replace(query_match.group(0), search_term);
                     if (links.contains(searchLink)) continue;
                     links.add(searchLink);

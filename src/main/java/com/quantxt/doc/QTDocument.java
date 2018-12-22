@@ -151,40 +151,34 @@ public abstract class QTDocument {
 	public void extractKeyValues(QTExtract speaker,
 								 int dist,
 								 boolean changeTitle) {
-		String rawSent_curr = title;
-		//TODO: we may wanna revisit this cleanups and make them better
-		//remove : followed by text  abshd:
-		rawSent_curr = rawSent_curr.replaceAll("(\\S+)\\:", "$1");
-		rawSent_curr = rawSent_curr.replaceAll("(\\S+)\\(\\d+\\)", "$1");
+		final String rawSent_curr = title;
 
-		List<String> tokens = helper.tokenize(rawSent_curr);
-		String[] parts = tokens.toArray(new String[tokens.size()]);
-		final String orig_tokenized = String.join(" ", parts);
-
-		// get potential keys
-
-		Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(orig_tokenized);
+		Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(rawSent_curr);
 		if (name_match_curr.size() == 0) return;
 		ArrayList<ExtInterval> values = new ArrayList<>();
 		// get potential values
 		helper.getValues(rawSent_curr, values);
 		if (values.size() == 0) return;
 
+		for (ExtInterval v : values){
+			logger.debug("--- \t" + v.toString(rawSent_curr));
+		}
 		// now we try to find keys for every row
 		String titleTable = "";
+		//ignore duplicate rows
+		HashSet<String> rows = new HashSet<>();
 
 		for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
 			String keyGroup = entType.getKey();
 			for (Emit matchedName : entType.getValue()) {
 				NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
 				String key = ne.getName();
-				int keyEnd = rawSent_curr.indexOf(matchedName.getKeyword());
+				int keyEnd = matchedName.getEnd();
 				if (keyEnd < 0){
-					logger.error("key wrong {} in {}", matchedName.getKeyword() , title);
+					logger.error("key wrong ---- {} ----- in '{}'", matchedName.getKeyword() , title);
 					continue;
 				}
-				int keyLength = matchedName.getKeyword().length();
-				keyEnd += keyLength;
+				logger.debug(" ---- KEY: " + matchedName.getKeyword());
 				ArrayList<ExtInterval> rowValues = new ArrayList<>();
 				for (ExtInterval extv : values) {
 					int valStart = extv.getStart();
@@ -206,7 +200,10 @@ public abstract class QTDocument {
 						sb.append("<td>").append(extv.getCustomData().toString()).append("</td>");
 					}
 					sb.append("</tr>");
-					titleTable += sb.toString();
+					String row2add = sb.toString();
+					if (rows.contains(row2add)) continue;
+					titleTable += row2add;
+					rows.add(row2add);
 				}
 			}
 		}
@@ -218,31 +215,6 @@ public abstract class QTDocument {
 				title = "";
 			}
 		}
-
-		/*
-		if (tableLeftColumn.size() == 0 && tableVals.size() ==0) return;
-
-		if (tableLeftColumn.size() != tableVals.size()) {
-			logger.error("Table values and Left headers are not the same size.");
-		} else if (changeTitle) {
-			StringBuilder titleString = new StringBuilder();
-			for (int i = 0; i < tableVals.size(); i++) {
-				ArrayList<ExtInterval> vlas = tableVals.get(i);
-				ArrayList<String> headers = tableLeftColumn.get(i);
-				if (headers.size() == 0) continue;
-				for (String header : headers) {
-					//	String leftLabel = tableLeftColumn.get(i);
-					StringBuilder sb = new StringBuilder();
-					sb.append("<td>").append(header).append("</td>");
-					for (ExtInterval extv : vlas) {
-						sb.append("<td>").append(extv.getCustomData().toString()).append("</td>");
-					}
-					titleString.append("<tr>").append(sb.toString()).append("</tr>");
-				}
-			}
-
-			title = "<table width=\"100%\">" + titleString.toString() + "</table>";
-		}*/
 		this.values = values;
 	}
 
@@ -259,8 +231,9 @@ public abstract class QTDocument {
 
 			List<String> tokens = helper.tokenize(rawSent_curr);
 			String [] parts = tokens.toArray(new String[tokens.size()]);
+//			logger.info("RAW {}", rawSent_curr);
 			if (! helper.isSentence(rawSent_curr, tokens)) continue;
-			final String orig_tokenized = String.join(" ", parts);
+//			final String orig_tokenized = String.join(" ", parts);
 /*
             try {
                 Files.write(Paths.get("snp500.txt"), (orig  +"\n").getBytes(), StandardOpenOption.APPEND);
@@ -270,10 +243,12 @@ public abstract class QTDocument {
 */
 
 			if (speaker != null && speaker.hasEntities()) {
-				Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(orig_tokenized);
+		//		Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(orig_tokenized);
+				Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(rawSent_curr);
 				if (name_match_curr.size() == 0) {
-					final String before_tokenized = String.join(" ", helper.tokenize(rawSent_before));
-					Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(before_tokenized);
+			//		final String before_tokenized = String.join(" ", helper.tokenize(rawSent_before));
+			//		Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(before_tokenized);
+					Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(rawSent_before);
 					for (Map.Entry<String, Collection<Emit>> entType : name_match_befr.entrySet()) {
 						Collection<Emit> ent_set = entType.getValue();
 						if (ent_set.size() != 1) continue;
@@ -296,6 +271,7 @@ public abstract class QTDocument {
 			}
 
 
+
 				//if still no emit continue
 	//			if (name_match_curr.size() == 0) {
 	//				continue;
@@ -316,7 +292,6 @@ public abstract class QTDocument {
 						workingChild.addEntity(NER_TYPE, noun);
 				}
 			}
-
 
 			if (workingChild.getEntity() == null  || workingChild.getEntity().size() == 0) {
 				logger.debug("Entity is still null or Verb type is not detected: " + rawSent_curr);

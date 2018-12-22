@@ -4,7 +4,6 @@ import com.quantxt.interval.Interval;
 import org.joda.time.DateTime;
 
 import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by matin on 5/20/17.
