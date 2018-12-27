@@ -3,6 +3,8 @@ package com.quantxt.doc;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -24,6 +26,7 @@ public abstract class QTDocument {
 	}
 
 	final private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+	final private static Pattern PAD = Pattern.compile("^\\s+");
 	public enum DOCTYPE {Headline, Action, Statement, Aux, Speculation,
 		Legal, Acquisition, Production, Partnership, Employment, Development
 	}
@@ -148,9 +151,27 @@ public abstract class QTDocument {
 
 	abstract boolean isStatement(String s);
 
+	private int getNextValidIndex(String str, int startlookup){
+		int lookaheadStart = startlookup + 1;
+		int subLen = str.length() - lookaheadStart;
+		if (subLen < 0) return 0;
+		Matcher m = PAD.matcher(str.substring(lookaheadStart));
+		if (!m.find()) return 0;
+		//shift keyend to end of the pad
+		return m.end();
+	}
+
 	public void extractKeyValues(QTExtract speaker,
 								 int dist,
 								 boolean changeTitle) {
+		// TODO: hacky quick check
+		// If there are no numbers then don't bother
+		if ( !(title.contains("0") || title.contains("1") || title.contains("2") || title.contains("3") ||
+				title.contains("4") || title.contains("5") || title.contains("6") || title.contains("7")||
+				title.contains("8") || title.contains("9") ) ){
+			return;
+		}
+
 		final String rawSent_curr = title;
 
 		Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(rawSent_curr);
@@ -178,16 +199,19 @@ public abstract class QTDocument {
 					logger.error("key wrong ---- {} ----- in '{}'", matchedName.getKeyword() , title);
 					continue;
 				}
-				logger.debug(" ---- KEY: " + matchedName.getKeyword());
+				int shift = getNextValidIndex(rawSent_curr, keyEnd);
+				keyEnd += shift;
+
+				logger.debug(" ---- KEY: '" + key + "' === " + matchedName.getKeyword());
 				ArrayList<ExtInterval> rowValues = new ArrayList<>();
 				for (ExtInterval extv : values) {
 					int valStart = extv.getStart();
 					int diff = (valStart - keyEnd);
-					if (diff > 0 && diff < dist) {
+					if (diff >= 0 && diff < dist) {
 			//			logger.info("\t value in {} is ----------------- {} --> {}", rawSent_curr, key, extv.toString(rawSent_curr));
-						//extv.setKey(key);
-			//			extv.setGroup(keyGroup);
 						keyEnd = extv.getEnd();
+						shift = getNextValidIndex(rawSent_curr, keyEnd);
+						keyEnd += shift;
 						rowValues.add(extv);
 					}
 				}
