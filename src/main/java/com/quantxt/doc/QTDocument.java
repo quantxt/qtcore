@@ -46,6 +46,7 @@ public abstract class QTDocument {
 	private DateTime date;
 	private String link;
 	private double score;
+	private int position;
 	private String source;
 	private String author;
 	private String logo;
@@ -62,10 +63,12 @@ public abstract class QTDocument {
 	private ArrayList<ExtInterval> values;
 
 	public QTDocument(String b, String t, QTDocumentHelper helper){
-		if (b != null) {
-			body = b.replaceAll("([\\n\\r])", " $1");
-		}
-		title = t.replaceAll("[\\n\\r]+","").trim();
+	//	if (b != null) {
+	//		body = b.replaceAll("([\\n\\r])", " $1");
+	//	}
+	//	title = t.replaceAll("[\\n\\r]+","").trim();
+		title = t;
+		body = b;
 		this.helper = helper;
 	}
 
@@ -93,6 +96,10 @@ public abstract class QTDocument {
 
 	public String getLink(){
 		return link;
+	}
+
+	public int getPosition(){
+		return position;
 	}
 
 	public String getRawTitle(){
@@ -142,6 +149,8 @@ public abstract class QTDocument {
 	public List<String> getSentences(){
 		return sentences;
 	}
+
+	public void setPosition(int i){position = i;}
 
 	abstract List<QTDocument> getChilds();
 
@@ -208,7 +217,7 @@ public abstract class QTDocument {
 					int valStart = extv.getStart();
 					int diff = (valStart - keyEnd);
 					if (diff >= 0 && diff < dist) {
-			//			logger.info("\t value in {} is ----------------- {} --> {}", rawSent_curr, key, extv.toString(rawSent_curr));
+						logger.info("\t value in {} is ----------------- {} --> {}", rawSent_curr, key, extv.toString(rawSent_curr));
 						keyEnd = extv.getEnd();
 						shift = getNextValidIndex(rawSent_curr, keyEnd);
 						keyEnd += shift;
@@ -251,13 +260,18 @@ public abstract class QTDocument {
 		{
 			QTDocument workingChild = childs.get(i);
 			final String rawSent_curr = workingChild.getTitle();
-			final String rawSent_before = i == 0 ? title : childs.get(i - 1).getTitle();
+			String rawSent_before = "";
+
+			if (i > 0){
+				rawSent_before = childs.get(i - 1).getTitle();
+				workingChild.setBody(rawSent_before + " " + rawSent_curr);
+			} else {
+				workingChild.setBody(rawSent_curr);
+			}
 
 			List<String> tokens = helper.tokenize(rawSent_curr);
 			String [] parts = tokens.toArray(new String[tokens.size()]);
-//			logger.info("RAW {}", rawSent_curr);
 			if (! helper.isSentence(rawSent_curr, tokens)) continue;
-//			final String orig_tokenized = String.join(" ", parts);
 /*
             try {
                 Files.write(Paths.get("snp500.txt"), (orig  +"\n").getBytes(), StandardOpenOption.APPEND);
@@ -267,23 +281,23 @@ public abstract class QTDocument {
 */
 
 			if (speaker != null && speaker.hasEntities()) {
-		//		Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(orig_tokenized);
 				Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(rawSent_curr);
-				if (name_match_curr.size() == 0) {
-			//		final String before_tokenized = String.join(" ", helper.tokenize(rawSent_before));
-			//		Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(before_tokenized);
-					Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(rawSent_before);
-					for (Map.Entry<String, Collection<Emit>> entType : name_match_befr.entrySet()) {
-						Collection<Emit> ent_set = entType.getValue();
-						if (ent_set.size() != 1) continue;
-						// simple co-ref for now
-						if (helper.getPronouns().contains(parts[0])) {
-							name_match_curr.put(entType.getKey(), ent_set);
+				if (name_match_curr.size() == 0 && i > 0) {
+					List<String> tokens_b = helper.tokenize(rawSent_before);
+					if (helper.isSentence(rawSent_before, tokens_b)) {
+
+						Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(rawSent_before);
+						for (Map.Entry<String, Collection<Emit>> entType : name_match_befr.entrySet()) {
+							Collection<Emit> ent_set = entType.getValue();
+							if (ent_set.size() != 1) continue;
+							// simple co-ref for now
+							if (helper.getPronouns().contains(parts[0])) {
+								name_match_curr.put(entType.getKey(), ent_set);
+							}
 						}
 					}
 				}
-
-				if (name_match_curr.size() != 0) {
+				if (name_match_curr.size() > 0) {
 					for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
 						for (Emit matchedName : entType.getValue()) {
 							NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
@@ -293,13 +307,6 @@ public abstract class QTDocument {
 					}
 				}
 			}
-
-
-
-				//if still no emit continue
-	//			if (name_match_curr.size() == 0) {
-	//				continue;
-	//			}
 
 			List<ExtInterval> tagged = helper.getNounAndVerbPhrases(rawSent_curr, parts);
 			for (ExtInterval ext : tagged) {
@@ -322,7 +329,7 @@ public abstract class QTDocument {
 				continue;
 			}
 
-			workingChild.setBody(rawSent_before + " " + rawSent_curr);
+
 			quotes.add(workingChild);
 		}
 

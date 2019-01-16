@@ -6,6 +6,7 @@ package com.quantxt.types;
  */
 public class BaseNameAlts<T>  {
     private String name;
+    private double score;
     private String [] alts;
     private T data;
 
@@ -18,6 +19,14 @@ public class BaseNameAlts<T>  {
         name = n;
         alts = a;
         data = d;
+    }
+
+    public void setScore(double s){
+        score = s;
+    }
+
+    public double getScore(){
+        return score;
     }
 
     public String getName(){return name;}
