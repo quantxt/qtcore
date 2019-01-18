@@ -35,5 +35,5 @@ public interface QTDocumentHelper {
 
     boolean isStopWord(String p);
 
-    String getValues(String orig, List<ExtInterval> list);
+    String getValues(String orig, String context, List<ExtInterval> list);
 }

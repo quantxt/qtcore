@@ -171,6 +171,7 @@ public abstract class QTDocument {
 	}
 
 	public void extractKeyValues(QTExtract speaker,
+								 String context,
 								 int dist,
 								 boolean changeTitle) {
 		// TODO: hacky quick check
@@ -187,7 +188,7 @@ public abstract class QTDocument {
 		if (name_match_curr.size() == 0) return;
 		ArrayList<ExtInterval> values = new ArrayList<>();
 		// get potential values
-		helper.getValues(rawSent_curr, values);
+		helper.getValues(rawSent_curr, context, values);
 		if (values.size() == 0) return;
 
 		for (ExtInterval v : values){
@@ -217,7 +218,7 @@ public abstract class QTDocument {
 					int valStart = extv.getStart();
 					int diff = (valStart - keyEnd);
 					if (diff >= 0 && diff < dist) {
-						logger.info("\t value in {} is ----------------- {} --> {}", rawSent_curr, key, extv.toString(rawSent_curr));
+						logger.debug("\t value in {} is ----------------- {} --> {}", rawSent_curr, key, extv.toString(rawSent_curr));
 						keyEnd = extv.getEnd();
 						shift = getNextValidIndex(rawSent_curr, keyEnd);
 						keyEnd += shift;
