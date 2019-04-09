@@ -6,6 +6,12 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.quantxt.helper.types.ExtIntervalSimple;
+import com.quantxt.helper.types.QTField;
+import com.quantxt.interval.Interval;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.var;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,8 +22,11 @@ import com.quantxt.helper.types.ExtInterval;
 import com.quantxt.trie.Emit;
 import com.quantxt.types.NamedEntity;
 
+import static com.quantxt.helper.types.QTField.QTFieldType.*;
 import static com.quantxt.types.Entity.NER_TYPE;
 
+@Getter
+@Setter
 public abstract class QTDocument {
 
 	public enum Language
@@ -26,7 +35,8 @@ public abstract class QTDocument {
 	}
 
 	final private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-	final private static Pattern PAD = Pattern.compile("^\\s+");
+	final private static Pattern KEY_Thrillings = Pattern.compile("^[\\s\"'\\(\\)\\-\\:;%]+$");
+
 	public enum DOCTYPE {Headline, Action, Statement, Aux, Speculation,
 		Legal, Acquisition, Production, Partnership, Employment, Development
 	}
@@ -35,12 +45,10 @@ public abstract class QTDocument {
 	private static Logger logger = LoggerFactory.getLogger(QTDocument.class);
 
 	protected String title;
-	protected String rawTitle;
 	protected String englishTitle;
 	protected String body;
 	protected Language language;
 	protected transient List<String> sentences;
-	protected String excerpt;
 	private DOCTYPE docType;
 
 	private DateTime date;
@@ -48,111 +56,30 @@ public abstract class QTDocument {
 	private double score;
 	private int position;
 	private String source;
-	private String author;
-	private String logo;
 	private String id;
 
 	protected transient QTDocumentHelper helper;
 
 	//TODO: all these should be combined into a generic class
 	private Set<String> tags = new HashSet<>();
-	private Map<String, Object> facts;
 	private Map<String, LinkedHashSet<String>> entity;
 	private ArrayList<String> verbs;
 	private ArrayList<String> nouns;
 	private ArrayList<ExtInterval> values;
 
 	public QTDocument(String b, String t, QTDocumentHelper helper){
-	//	if (b != null) {
-	//		body = b.replaceAll("([\\n\\r])", " $1");
-	//	}
-	//	title = t.replaceAll("[\\n\\r]+","").trim();
 		title = t;
-		body = b;
+		body  = b;
 		this.helper = helper;
 	}
 
-	protected void addBasicPropstoSubDoc(QTDocument reference)
-	{
-		this.language = reference.language;
-		this.date = reference.date;
-		this.link = reference.link;
-		this.logo = reference.logo;
-		this.source = reference.source;
-	}
-
 	// Getters
-	public String getBody(){
-		return body;
-	}
-
-	public String getExcerpt(){
-		return excerpt;
-	}
-
-	public Language getLanguage(){
-		return language;
-	}
-
-	public String getLink(){
-		return link;
-	}
-
-	public int getPosition(){
-		return position;
-	}
-
-	public String getRawTitle(){
-		return rawTitle;
-	}
-
-	public String getTitle(){
-		return title;
-	}
-
-	public String getEnglishTitle(){
-		return englishTitle;
-	}
-
-	public String getLogo(){return logo;}
-
-	public double getScore(){return score;}
-
-	public String getSource(){return source;}
-
-	public String getId() {return id;}
-
-	public DOCTYPE getDocType(){return docType;}
-
-	public List<String> getNouns(){ return nouns;}
-
-	public List<ExtInterval> getValues(){ return values;}
-
-	public List<String> getVerbs(){ return verbs;}
-
-	public Set<String> getTags(){ return tags;}
 
 	public synchronized String getDateStr() {
 		return dateFormat.format(date);
 	}
 
-	public void setDocType(DOCTYPE dt){
-		docType = dt;
-	}
-
-	public String getAuthor() {return author;}
-
-	public Map<String, Object> getKey_values(){return facts;}
-
-	public DateTime getDate() {return date;}
-
-	public List<String> getSentences(){
-		return sentences;
-	}
-
-	public void setPosition(int i){position = i;}
-
-	abstract List<QTDocument> getChilds();
+	abstract List<QTDocument> getChilds(boolean splitOnNewLine);
 
 	abstract double[] getVectorizedTitle(QTExtract extract);
 
@@ -160,44 +87,66 @@ public abstract class QTDocument {
 
 	abstract boolean isStatement(String s);
 
-	private int getNextValidIndex(String str, int startlookup){
-		int lookaheadStart = startlookup + 1;
+
+	private int getNextValidIndex(final Pattern pattern, String str,
+								  int lookaheadStart, int lookupEnd)
+	{
 		int subLen = str.length() - lookaheadStart;
-		if (subLen < 0) return 0;
-		Matcher m = PAD.matcher(str.substring(lookaheadStart));
-		if (!m.find()) return 0;
+		if (subLen < 0) return -1;
+		String lookupString = lookupEnd > 0 ? str.substring(lookaheadStart, lookupEnd):
+				str.substring(lookaheadStart);
+		lookupString = lookupString.replaceAll("(\\p{Sc})", "");
+		lookupString = lookupString.replaceAll("(\\([^\\)]{1,25}\\))", "");
+		if (lookupString.length() == 0) return 0;
+		Matcher m = pattern.matcher(lookupString);
+		if (!m.find()) return -1;
 		//shift keyend to end of the pad
 		return m.end();
 	}
 
 	public void extractKeyValues(QTExtract speaker,
 								 String context,
-								 int dist,
-								 boolean changeTitle) {
+								 int dist) {
 		// TODO: hacky quick check
 		// If there are no numbers then don't bother
-		if ( !(title.contains("0") || title.contains("1") || title.contains("2") || title.contains("3") ||
-				title.contains("4") || title.contains("5") || title.contains("6") || title.contains("7")||
-				title.contains("8") || title.contains("9") ) ){
-			return;
+        QTField.QTFieldType valueType = speaker.getType();
+
+		if (valueType == null || valueType == DOUBLE || valueType == INT || valueType == SHORT) {
+			if (!(title.contains("0") || title.contains("1") || title.contains("2") || title.contains("3") ||
+					title.contains("4") || title.contains("5") || title.contains("6") || title.contains("7") ||
+					title.contains("8") || title.contains("9"))) {
+				return;
+			}
 		}
 
 		final String rawSent_curr = title;
 
 		Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(rawSent_curr);
 		if (name_match_curr.size() == 0) return;
-		ArrayList<ExtInterval> values = new ArrayList<>();
+		ArrayList<ExtIntervalSimple> values = new ArrayList<>();
 		// get potential values
-		helper.getValues(rawSent_curr, context, values);
+
+
+        if (valueType == null || valueType == DOUBLE || valueType == INT || valueType == SHORT) {
+			helper.getValues(rawSent_curr, context, values);
+		} else {
+			if (valueType == DATETIME){
+				helper.getDatetimeValues(rawSent_curr, context, values);
+			} else if (valueType == STRING || valueType == KEYWORD){
+			    Pattern regex = speaker.getPattern();
+			    int [] groups = speaker.getGroups();
+				helper.getPatternValues(rawSent_curr, context, regex, groups, values);
+			}
+		}
 		if (values.size() == 0) return;
 
-		for (ExtInterval v : values){
+		/*
+		for (ExtIntervalSimple v : values){
 			logger.debug("--- \t" + v.toString(rawSent_curr));
 		}
-		// now we try to find keys for every row
-		String titleTable = "";
+		*/
+
 		//ignore duplicate rows
-		HashSet<String> rows = new HashSet<>();
 
 		for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
 			String keyGroup = entType.getKey();
@@ -205,56 +154,89 @@ public abstract class QTDocument {
 				NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
 				String key = ne.getName();
 				int keyEnd = matchedName.getEnd();
-				if (keyEnd < 0){
-					logger.error("key wrong ---- {} ----- in '{}'", matchedName.getKeyword() , title);
+				if (keyEnd < 0) {
+					logger.error("key wrong ---- {} ----- in '{}'", matchedName.getKeyword(), title);
 					continue;
 				}
-				int shift = getNextValidIndex(rawSent_curr, keyEnd);
-				keyEnd += shift;
 
 				logger.debug(" ---- KEY: '" + key + "' === " + matchedName.getKeyword());
-				ArrayList<ExtInterval> rowValues = new ArrayList<>();
-				for (ExtInterval extv : values) {
-					int valStart = extv.getStart();
+				ArrayList<ExtIntervalSimple> rowValues = new ArrayList<>();
+				for (int v = 0; v < values.size(); v++) {
+					ExtIntervalSimple intv = values.get(v);
+					int valStart = intv.getStart();
 					int diff = (valStart - keyEnd);
-					if (diff >= 0 && diff < dist) {
-						logger.debug("\t value in {} is ----------------- {} --> {}", rawSent_curr, key, extv.toString(rawSent_curr));
-						keyEnd = extv.getEnd();
-						shift = getNextValidIndex(rawSent_curr, keyEnd);
-						keyEnd += shift;
-						rowValues.add(extv);
+					if (diff < 0) continue;
+					if (diff > dist) break;
+
+					logger.debug("\t value in {} is ----------------- {} --> '{}'", rawSent_curr, key, intv.toString(rawSent_curr));
+
+					int lookupStart = keyEnd;  // end of the last index we scanned
+					int lookupEnd = valStart;
+					int shift = getNextValidIndex(KEY_Thrillings, rawSent_curr, lookupStart, lookupEnd);
+					if (shift < 0) break;
+					keyEnd = intv.getEnd();
+					if (shift > 0) {
+						rowValues.add(intv);
 					}
 				}
 
 				if (rowValues.size() > 0) {
-					StringBuilder sb = new StringBuilder();
-					sb.append("<tr>");
-					sb.append("<td>").append(key).append("</td>");
-					for (ExtInterval extv : rowValues) {
-						sb.append("<td>").append(extv.getCustomData().toString()).append("</td>");
-					}
-					sb.append("</tr>");
-					String row2add = sb.toString();
-					if (rows.contains(row2add)) continue;
-					titleTable += row2add;
-					rows.add(row2add);
+					ExtInterval extInterval = new ExtInterval();
+					extInterval.setKeyGroup(keyGroup);
+					extInterval.setKey(key);
+					extInterval.setExtIntervalSimples(rowValues);
+					if (this.values == null) this.values = new ArrayList<>();
+					this.values.add(extInterval);
 				}
 			}
 		}
+	}
 
-		if (changeTitle) {
-			if (!titleTable.isEmpty()) {
-				title = "<table width=\"100%\">" + titleTable + "</table>";
-			} else {
+	public void convertValues2titleTable()
+	{
+		if (this.values == null)  return;
+
+		Collections.sort(this.values, new Comparator<ExtInterval>(){
+			public int compare(ExtInterval p1, ExtInterval p2){
+				Integer s1 = p1.getExtIntervalSimples().get(0).getStart();
+				Integer s2 = p2.getExtIntervalSimples().get(0).getStart();
+				return s1.compareTo(s2);
+			}
+		});
+
+		LinkedHashSet<String> rows = new LinkedHashSet<>();
+		for (ExtInterval ext : this.values) {
+
+			StringBuilder sb = new StringBuilder();
+			sb.append("<tr>");
+			sb.append("<td>").append(ext.getKey()).append("</td>");
+			for (ExtIntervalSimple extvStr : ext.getExtIntervalSimples()) {
+				sb.append("<td>").append(extvStr.getCustomData().toString()).append("</td>");
+			}
+			sb.append("</tr>");
+			String row2add = sb.toString();
+			rows.add(row2add);
+		}
+
+		if (!rows.isEmpty()) {
+			if (!title.startsWith("<table ")){
+				title = "";
+			}
+			title += "<table width=\"100%\">" + String.join("", rows) + "</table>";
+		} else {
+			if (!title.startsWith("<table ")){
 				title = "";
 			}
 		}
-		this.values = values;
 	}
 
-	public ArrayList<QTDocument> extractEntityMentions(QTExtract speaker) {
+	public ArrayList<QTDocument> extractEntityMentions(QTExtract speaker,
+													   boolean onlyIncludeUttsWithEntities,
+													   boolean extractNounAndVebPhrases,
+													   boolean splitOnNewLine) {
 		ArrayList<QTDocument> quotes = new ArrayList<>();
-		List<QTDocument> childs = getChilds();
+		List<QTDocument> childs =  getChilds(splitOnNewLine);
+
 		int numSent = childs.size();
 
 		for (int i = 0; i < numSent; i++)
@@ -303,105 +285,50 @@ public abstract class QTDocument {
 						for (Emit matchedName : entType.getValue()) {
 							NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
 							workingChild.addEntity(entType.getKey(), ne.getName());
-				//			logger.info("\t" + entType.getKey() + " | " + ne.getName());
+							//			logger.info("\t" + entType.getKey() + " | " + ne.getName());
 						}
+					}
+				}
+				if (name_match_curr.size() == 0 && onlyIncludeUttsWithEntities) continue;
+			}
+
+			if (extractNounAndVebPhrases) {
+				List<ExtIntervalSimple> nounsAndVerbs = helper.getNounAndVerbPhrases(rawSent_curr, parts);
+				for (ExtIntervalSimple ext : nounsAndVerbs) {
+					switch (ext.getType()) {
+						case VERB:
+							String verb = rawSent_curr.substring(ext.getStart(), ext.getEnd());
+							DOCTYPE verbType = helper.getVerbType(verb);
+							if (verbType != null) {
+								workingChild.setDocType(verbType);
+							}
+							break;
+						case NOUN:
+							String noun = rawSent_curr.substring(ext.getStart(), ext.getEnd());
+							workingChild.addEntity(NER_TYPE, noun);
 					}
 				}
 			}
 
-			List<ExtInterval> tagged = helper.getNounAndVerbPhrases(rawSent_curr, parts);
-			for (ExtInterval ext : tagged) {
-				switch (ext.getType()) {
-					case VERB :
-						String verb = rawSent_curr.substring(ext.getStart(), ext.getEnd());
-						DOCTYPE verbType = helper.getVerbType(verb);
-						if (verbType != null) {
-							workingChild.setDocType(verbType);
-						}
-					break;
-					case NOUN :
-						String noun = rawSent_curr.substring(ext.getStart(), ext.getEnd());
-						workingChild.addEntity(NER_TYPE, noun);
+			if (onlyIncludeUttsWithEntities){
+				if (workingChild.getEntity() != null && workingChild.getEntity().size() != 0) {
+					quotes.add(workingChild);
 				}
+			} else {
+				quotes.add(workingChild);
 			}
 
-			if (workingChild.getEntity() == null  || workingChild.getEntity().size() == 0) {
-				logger.debug("Entity is still null or Verb type is not detected: " + rawSent_curr);
-				continue;
-			}
-
-
-			quotes.add(workingChild);
 		}
 
 		return quotes;
-	}
-
-	public void setScore(double s){
-		score = s;
-	}
-
-	protected void setExcerpt(String s){
-		excerpt = s;
-	}
-
-	public void setBody(String b){
-		body = b;
 	}
 
 	public void addTags (List<String> taglist){
 		tags.addAll(taglist);
 	}
 
-	public Map<String, LinkedHashSet<String> > getEntity(){return entity;}
-
-	public void setEntity(Map<String, LinkedHashSet<String>> entity){this.entity = entity;}
-
 	public void addTag (String tag){
 		tags.add(tag);
-	}
-
-	public void setTags (Set<String> tags){
-		this.tags = tags;
-	}
-
-	public void setLogo(String s){
-		logo = s;
-	}
-
-	public void setSource(String s){
-		source = s;
-	}
-
-	public void setSentences(List<String> s){
-		sentences = s;
-	}
-
-	public void setDate(DateTime d){date = d; }
-
-	public void setRawTitle(String s){rawTitle = s; }
-
-	public void setValues(ArrayList<ExtInterval> s){values = s; }
-
-	public void addFacts(String key, Object val){
-		if (facts == null){
-			facts = new HashMap<>();
-		}
-
-		facts.put(key, val);
-	}
-
-	public void setFacts(Map<String, Object> map){
-		if (map == null || map.size() == 0){
-			facts = null;
-			return;
-		}
-
-		if (facts == null){
-			facts = new HashMap<>();
-		}
-
-		facts.putAll(map);
 	}
 
 	/*
@@ -410,18 +337,6 @@ public abstract class QTDocument {
 		Translate.setClientSecret("g184U2+B7fwftaoGzBDyb59KzYEKtulZZQZsnW71wj4=");
 	}
 	*/
-
-	public void setLink (String l){
-		link = l;
-	}
-
-	public void setAuthor(String a){
-		author = a;
-	}
-
-	public void setLanguage(Language l){
-		language = l;
-	}
 
 	public void addEntity(String t, String e){
 		LinkedHashSet<String> ents;
@@ -438,32 +353,8 @@ public abstract class QTDocument {
 		entity.put(t, ents);
 	}
 
-	public String getWPDocument(){
-		String date_str = dateFormat.format(date);
-		JsonObject json = new JsonObject();
-//		json.addProperty("ID", id);
-//		json.addProperty("post_id", id);
-		json.addProperty("post_date", date_str);
-		json.addProperty("post_date_gmt", date_str);
-		json.addProperty("post_title", title);
-		json.addProperty("post_content", body);
-		json.addProperty("post_status", "publish");
-		json.addProperty("post_name", title);
-		json.addProperty("post_type", "post");
-		json.addProperty("permalink", link);
-		return json.toString();
-	}
-
 	public String toString(){
 		return gson.toJson(this);
 	}
-
-    public QTDocumentHelper getHelper() {
-        return helper;
-    }
-
-    public void setHelper(QTDocumentHelper helper) {
-        this.helper = helper;
-    }
 
 }

@@ -1,6 +1,7 @@
 package com.quantxt.util;
 
 import com.quantxt.helper.types.ExtInterval;
+import com.quantxt.helper.types.ExtIntervalSimple;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -27,7 +28,7 @@ public class StringUtilTest {
         tokenlist.add("areas");
         tokenlist.add("of");
         tokenlist.add("unmet");
-        ExtInterval ex = findSpan(str, tokenlist);
+        ExtIntervalSimple ex = findSpan(str, tokenlist);
 
         assertNotNull(ex);
         assertEquals(ex.getStart(), 144);
@@ -46,7 +47,7 @@ public class StringUtilTest {
         tokenlist.add("Profile");
         tokenlist.add("Gilead");
         tokenlist.add("Sciences");
-        ExtInterval ex = findSpan(str, tokenlist);
+        ExtIntervalSimple ex = findSpan(str, tokenlist);
 
         assertNotNull(ex);
         assertEquals(ex.getStart(), 0);
@@ -60,7 +61,7 @@ public class StringUtilTest {
         tokenlist.add("are");
         tokenlist.add("n't");
         tokenlist.add("cabled");
-        ExtInterval ex = findSpan(str, tokenlist);
+        ExtIntervalSimple ex = findSpan(str, tokenlist);
 
         assertNotNull(ex);
         assertEquals(ex.getStart(), 43);
@@ -71,7 +72,7 @@ public class StringUtilTest {
     public void findMatch_4() {
         String str = "One positive of these devices is that they aren't cabled to a computer .";
         String [] tokens = new String[]{"positi", "devic" , "comput"};
-        ExtInterval [] ex = findAllSpans(str, tokens);
+        ExtIntervalSimple [] ex = findAllSpans(str, tokens);
 
         assertNotNull(ex);
         assertEquals(ex[0].getStart(), 4);
@@ -84,7 +85,7 @@ public class StringUtilTest {
         String str = "みんなのマイリビングは北九州エリアの住宅情報満載";
         String [] tokens = new String[]{"みんな", "ングは" , "の住宅"};
 
-        ExtInterval [] ex = findAllSpans(str, tokens);
+        ExtIntervalSimple [] ex = findAllSpans(str, tokens);
 
         assertNotNull(ex);
         assertEquals(ex[0].getStart(), 0);

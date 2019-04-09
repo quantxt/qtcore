@@ -1,7 +1,8 @@
 package com.quantxt.helper;
 
 import com.quantxt.helper.types.DateStrHelper;
-import com.quantxt.helper.types.ExtInterval;
+import com.quantxt.helper.types.ExtIntervalSimple;
+import com.quantxt.helper.types.QTField;
 import com.quantxt.types.MapSort;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -9,7 +10,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 import org.joda.time.format.DateTimeParser;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -21,8 +21,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.quantxt.helper.types.ExtInterval.ExtType.DATE;
-
 /**
  * Created by matin on 3/22/17.
  */
@@ -30,27 +28,23 @@ public class DateResolver {
 
     private static Logger logger = LoggerFactory.getLogger(DateResolver.class);
     private final static List<DateStrHelper> DATE_PATTERN_MAP = new ArrayList<>();
-    final private static String DATE_SEPARATOR_STR = "(?:[\\@\\.\\s,\\-\\/\\\\\\|\\&;]+|$)";
+    final private static String DATE_SEPARATOR_STR = "(?:[\\@\\.\\s,\\-\\/\\)\\\\\\|\\&;]+|$)";
     final private static String MONTH_NAME_STR   = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[a-zA-Z]*)";
     final private static String DAY_STR = "([0123][0-9]|[1-9])";
     final private static String MONTH_STR = "([01][0-9]|[1-9])";
-    final private static String YEAR_STR = "([12]\\d{3})";
+    final private static String YEAR_STR = "([12]\\d{3})";   // 4 digit year
+    final private static String YEAR_SHORT = "([01]\\d|[6789]\\d)";  // 2 digit year
+
+
     final private static DateTimeFormatter MonthFormat = DateTimeFormat.forPattern("MMM");
 
     static {
- //       DATE_PATTERN_MAP.put(Pattern.compile("(?:^|\\s)" + MONTH_NAME_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{3, 1, 2});
-        /* try in this order
-        Month/dd/YY
-        MM/dd/YY
-        YY/MM/dd
-        dd/Month/yy
-        dd/MM/yy
-         */
-        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_NAME_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
-        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_NAME_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
         DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+YEAR_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + ")" + "(?:T|\\s|\\b)"), new int[]{2, 3, 4}));
-        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_NAME_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{4, 3, 2}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_NAME_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 3, 2}));
         DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + "(?:T|\\s|\\b)"), new int[]{4, 3, 2}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_SHORT + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
     }
 
     private static DateTimeParser[] DATE_PARSER = {
@@ -221,8 +215,17 @@ public class DateResolver {
         // check the day and month numbers are valid
         //validate month
         String month = m.group(vals[1]);
+        int year_int = 0;
         try {
-            if (Integer.parseInt(m.group(vals[0])) > 2060) return null;
+            String year = m.group(vals[0]);
+            year_int = Integer.parseInt(year);
+            if (year_int > 2060) return null;
+            if (year_int < 30){ //2030
+                year_int += 2000;
+            } else if (year_int > 30 && year_int < 100){
+                year_int += 1900;
+            }
+
             if (Integer.parseInt(month) > 12) return null;
             if (Integer.parseInt(m.group(vals[2])) > 31) return null;
         } catch (NumberFormatException ne){
@@ -233,8 +236,9 @@ public class DateResolver {
                 return null;
             }
         }
+        if (year_int == 0) return null;
 
-        sb.append(m.group(vals[0]))
+        sb.append(year_int)
                 .append(" ")
                 .append(m.group(vals[1]))
                 .append(" ")
@@ -293,7 +297,11 @@ public class DateResolver {
     private  static DateTime findDate(String date_string){
         if (date_string == null) return null;
         date_string = date_string.replace("\u00a0"," ");
-        if (date_string.length() > 400 || date_string.split("\\s+").length > 20) return null;
+        if (date_string.length() > 1000) {
+            logger.error("String is too long > 1000");
+            return null;
+        }
+    //    if (date_string.length() > 400 || date_string.split("\\s+").length > 20) return null;
         List<DateResolver> allDates = new ArrayList<>();
         for (DateStrHelper e : DATE_PATTERN_MAP) {
             Pattern p = e.pattern;
@@ -313,16 +321,16 @@ public class DateResolver {
 
     // TODO: This method going to become the main method to call for extraction
 
-    private static ExtInterval datefinderHelper(String substr, int offset){
+    private static ExtIntervalSimple datefinderHelper(String substr, int offset){
         for (DateStrHelper e : DATE_PATTERN_MAP) {
             Pattern p = e.pattern;
             Matcher m = p.matcher(substr);
             if (m.find()) {
                 DateResolver dr = normalizeDateStr(substr, m, e.digits);
                 if (dr == null) continue;
-                ExtInterval ext = new ExtInterval(m.start() + offset, m.end() -1 +offset);
-                ext.setType(DATE);
-                ext.setDatevalue(dr.date);
+                ExtIntervalSimple ext = new ExtIntervalSimple(m.start() + offset, m.end() -1 +offset);
+                ext.setType(QTField.QTFieldType.DATETIME);
+                ext.setDatetimeValue(dr.date);
                 ext.setCustomData(m.group(1));
                 return ext;
             }
@@ -330,14 +338,14 @@ public class DateResolver {
         return null;
     }
 
-    public static ArrayList<ExtInterval> resolveDate(String str){
+    public static ArrayList<ExtIntervalSimple> resolveDate(String str){
         if (str == null) return null;
-        ArrayList<ExtInterval> dates = new ArrayList<>();
+        ArrayList<ExtIntervalSimple> dates = new ArrayList<>();
         str = str.replace("\u00a0"," ");
         String string_copy = str;
         int offset = 0;
         while (true){
-            ExtInterval ext = datefinderHelper(string_copy, offset);
+            ExtIntervalSimple ext = datefinderHelper(string_copy, offset);
             if (ext == null) {// didn't find anything.. time to give up!
                 break;
             }
@@ -387,11 +395,12 @@ public class DateResolver {
     }
 
     public static void main(String[] args) throws Exception {
-        String txt  = "FW: Interprint Inc; Morten Enterprises Inc - Wind Submission; Eff 7/15/2018";
+   //     String txt  = "FW: Interprint Inc; Morten Enterprises Inc - Wind Submission; Eff 7/15/2018";
+        String txt = "InceptionPortfolio Benchmark (Annualized) Asset Class Composition (Net market value, as of 10/31/18) Fund Performance External: Local: Sovereign 68% Sovereign 2% The Fund returned -2.67% (net I-shares) in October, underperforming the Quasi Sovereign 10% Quasi Sovereign 0% benchmark by 51 bps.";
         DateTime dt = DateResolver.resolveDateStr(txt);
 
-        Document doc = Jsoup.connect("https://www.sec.gov/Archives/edgar/data/34088/000003408817000041/xom10q2q2017.htm").get();
-        dt = DateResolver.resolveDate(doc);
+    //    Document doc = Jsoup.connect("https://www.sec.gov/Archives/edgar/data/34088/000003408817000041/xom10q2q2017.htm").get();
+    //    dt = DateResolver.resolveDate(doc);
         if (dt != null) {
             logger.info(dt.toString());
         } else {

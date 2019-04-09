@@ -4,11 +4,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.quantxt.helper.types.ExtIntervalSimple;
 import com.quantxt.types.MapSort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.quantxt.helper.types.ExtInterval;
 
 public class StringUtil {
 
@@ -26,9 +25,9 @@ public class StringUtil {
         return str;
     }
 
-    private static ExtInterval findSpanHelper(String str,
-                                              int startPos,
-                                              List<String> tokenList)
+    private static ExtIntervalSimple findSpanHelper(String str,
+                                                    int startPos,
+                                                    List<String> tokenList)
     {
         if (tokenList.size() == 0) {
             return null;
@@ -47,22 +46,22 @@ public class StringUtil {
             if (end > strLength) return null;
         }
 
-        return new ExtInterval(startPos, end);
+        return new ExtIntervalSimple(startPos, end);
     }
 
-    public static ExtInterval findSpan(String str,
+    public static ExtIntervalSimple findSpan(String str,
                                        List<String> tokenList) {
         if (tokenList == null || tokenList.size() == 0)
             return null;
         str = str.trim();
 
-        Map<ExtInterval, Integer> allMatahces = new HashMap<>();
+        Map<ExtIntervalSimple, Integer> allMatahces = new HashMap<>();
         String firstToken = tokenList.get(0);
         int cursor = 0;
         while (cursor >=0){
             int pos = str.indexOf(firstToken, cursor);
             if (pos < 0) break;
-            ExtInterval ext = findSpanHelper(str, pos, tokenList);
+            ExtIntervalSimple ext = findSpanHelper(str, pos, tokenList);
             if (ext != null){
                 allMatahces.put(ext, ext.getEnd() - ext.getStart());
             }
@@ -73,14 +72,14 @@ public class StringUtil {
         }
         //find shortest ..
         // if there multiple shorts then we pick the last one (the one closer to the end of utterance)
-        Map<ExtInterval, Integer> sorted = MapSort.sortByValue(allMatahces);
+        Map<ExtIntervalSimple, Integer> sorted = MapSort.sortByValue(allMatahces);
         int shortestLnegth = sorted.entrySet().iterator().next().getValue();
-        ExtInterval res = sorted.entrySet().iterator().next().getKey();
+        ExtIntervalSimple res = sorted.entrySet().iterator().next().getKey();
 
-        for (Map.Entry<ExtInterval, Integer> e : sorted.entrySet()){
+        for (Map.Entry<ExtIntervalSimple, Integer> e : sorted.entrySet()){
             int length = e.getValue();
             if (length != shortestLnegth) break;
-            ExtInterval key = e.getKey();
+            ExtIntervalSimple key = e.getKey();
             if (key.getStart() > res.getStart()){
                 res = key;
             }
@@ -88,8 +87,8 @@ public class StringUtil {
         return res;
     }
 
-    public static ExtInterval [] findAllSpans(String str, String[] tokens){
-        ExtInterval [] allSpans = new ExtInterval[tokens.length];
+    public static ExtIntervalSimple [] findAllSpans(String str, String[] tokens){
+        ExtIntervalSimple [] allSpans = new ExtIntervalSimple[tokens.length];
 
         int cursor = 0;
         for (int i=0; i<tokens.length; i++){
@@ -99,7 +98,7 @@ public class StringUtil {
                 logger.error("Token {} as not found in the string {}", t , str);
                 return null;
             }
-            ExtInterval exi = new ExtInterval(pos, pos + t.length());
+            ExtIntervalSimple exi = new ExtIntervalSimple(pos, pos + t.length());
             allSpans[i] = exi;
             cursor = exi.getEnd();
 
