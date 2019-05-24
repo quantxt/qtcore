@@ -5,6 +5,7 @@ import org.jsoup.nodes.Element;
 /**
  * Created by matin on 4/14/17.
  */
+
 public class ElemScore {
     private Element elem;
     private int numWords;

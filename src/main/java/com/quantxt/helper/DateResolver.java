@@ -321,38 +321,61 @@ public class DateResolver {
 
     // TODO: This method going to become the main method to call for extraction
 
-    private static ExtIntervalSimple datefinderHelper(String substr, int offset){
+    private static ArrayList<ExtIntervalSimple> datefinderHelper(String substr, int offset){
+        ArrayList<ExtIntervalSimple> dates_found = new ArrayList<>();
+        ArrayList<Integer> starts = new ArrayList<>();
+        ArrayList<Integer> ends = new ArrayList<>();
         for (DateStrHelper e : DATE_PATTERN_MAP) {
             Pattern p = e.pattern;
             Matcher m = p.matcher(substr);
-            if (m.find()) {
+            while (m.find()) {
                 DateResolver dr = normalizeDateStr(substr, m, e.digits);
                 if (dr == null) continue;
-                ExtIntervalSimple ext = new ExtIntervalSimple(m.start() + offset, m.end() -1 +offset);
+                int date_start_index = m.start();
+                int date_str_end_index = m.end() - 1;
+                ExtIntervalSimple ext = new ExtIntervalSimple(date_start_index + offset, date_str_end_index +offset);
+                //make sure the date found is unique:
+                boolean has_overalp = false;
+                for (int i =0; i< starts.size(); i++){
+                    if (date_start_index >= starts.get(i) && date_start_index <= ends.get(i)) {
+                        has_overalp = true;
+                        break;
+                    }
+                    if (date_str_end_index >= starts.get(i) && date_str_end_index <= ends.get(i)) {
+                        has_overalp = true;
+                        break;
+                    }
+                }
+                if (has_overalp) continue;
+                starts.add(date_start_index);
+                ends.add(date_str_end_index);
                 ext.setType(QTField.QTFieldType.DATETIME);
                 ext.setDatetimeValue(dr.date);
                 ext.setCustomData(m.group(1));
-                return ext;
+                dates_found.add(ext);
             }
         }
-        return null;
+        return dates_found;
     }
 
     public static ArrayList<ExtIntervalSimple> resolveDate(String str){
         if (str == null) return null;
-        ArrayList<ExtIntervalSimple> dates = new ArrayList<>();
         str = str.replace("\u00a0"," ");
         String string_copy = str;
+        //TODO: offset may not be needed
         int offset = 0;
-        while (true){
-            ExtIntervalSimple ext = datefinderHelper(string_copy, offset);
-            if (ext == null) {// didn't find anything.. time to give up!
-                break;
-            }
-            string_copy = string_copy.substring(ext.getEnd() - offset);
-            offset = ext.getEnd();
-            dates.add(ext);
-        }
+        ArrayList<ExtIntervalSimple> dates = datefinderHelper(string_copy, offset);
+    //    while (true){
+    //        ArrayList<ExtIntervalSimple> dates_found = datefinderHelper(string_copy, offset);
+    //        if (dates_found.size() ==0) {// didn't find anything.. time to give up!
+    //            break;
+    //        }
+    //        for (ExtIntervalSimple  ext : dates_found) {
+    //            string_copy = string_copy.substring(ext.getEnd() - offset);
+    //            offset = ext.getEnd();
+    //            dates.add(ext);
+    //        }
+    //    }
         return dates;
     }
 

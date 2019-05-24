@@ -1,9 +1,7 @@
 package com.quantxt.helper.types;
 
-import com.quantxt.interval.Interval;
 import lombok.Getter;
 import lombok.Setter;
-import org.joda.time.DateTime;
 
 import java.util.ArrayList;
 
@@ -22,10 +20,4 @@ public class ExtInterval {
     public ExtInterval() {
 
     }
-
-    /*
-    public String toString(String str){
-        return str.substring(start, end);
-    }
-    */
 }
