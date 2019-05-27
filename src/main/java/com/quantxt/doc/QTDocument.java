@@ -123,7 +123,8 @@ public abstract class QTDocument {
         //	if (valueFirst){
         ArrayList<ExtIntervalSimple> values = new ArrayList<>();
         // get potential values
-        if (valueType == null || valueType == DOUBLE || valueType == INT || valueType == SHORT) {
+        if (valueType == null || valueType == DOUBLE || valueType == FLOAT ||
+                valueType == INT || valueType == SHORT || valueType == MONEY || valueType == PERCENT) {
             helper.getValues(rawSent_curr, pre_context, values);
         } else {
             if (valueType == DATETIME) {
@@ -132,6 +133,15 @@ public abstract class QTDocument {
                 Pattern regex = speaker.getPattern();
                 int[] groups = speaker.getGroups();
                 helper.getPatternValues(rawSent_curr, pre_context, regex, groups, values);
+            } else if (valueType == NOUN || valueType == VERB) {
+                List<String> tokens = helper.tokenize(rawSent_curr);
+                String[] parts = tokens.toArray(new String[tokens.size()]);
+                List<ExtIntervalSimple> nounAndVerbs = helper.getNounAndVerbPhrases(rawSent_curr, parts);
+                for (ExtIntervalSimple ext : nounAndVerbs){
+                    if (valueType == ext.getType() ){
+                        values.add(ext);
+                    }
+                }
             }
         }
 
