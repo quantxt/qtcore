@@ -2,8 +2,8 @@ package com.quantxt.interval;
 
 public class Interval implements Intervalable {
 
-    private final int start;
-    private final int end;
+    final protected int start;
+    final protected int end;
 
     /**
      * Constructs an interval with a start and end position.

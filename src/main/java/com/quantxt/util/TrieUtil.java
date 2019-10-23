@@ -14,10 +14,11 @@ import com.quantxt.trie.Trie;
 
 public class TrieUtil {
 
-    public static Trie buildVerbTree(final byte[] verbArr, Function<String,
+    public static Trie buildVerbTree(final byte[] verbArr, boolean isSimple, Function<String,
             List<String>> tokenize) throws IOException {
         JsonParser parser = new JsonParser();
-        Trie.TrieBuilder verbs = Trie.builder().onlyWholeWords().ignoreCase();
+        Trie.TrieBuilder verbs = isSimple ? Trie.builder():
+                Trie.builder().onlyWholeWords().ignoreCase();
         JsonElement jsonElement = parser.parse(new String(verbArr, "UTF-8"));
         JsonObject contextJson = jsonElement.getAsJsonObject();
         for (Map.Entry<String, JsonElement> entry : contextJson.entrySet()) {
@@ -27,6 +28,8 @@ public class TrieUtil {
                 case "Speculation" : verbTybe = DOCTYPE.Speculation;
                     break;
                 case "Action" : verbTybe = DOCTYPE.Action;
+                    break;
+                case "Development" : verbTybe = DOCTYPE.Development;
                     break;
                 case "Partnership" : verbTybe = DOCTYPE.Partnership;
                     break;
@@ -49,8 +52,9 @@ public class TrieUtil {
             JsonArray context_arr = entry.getValue().getAsJsonArray();
             for (JsonElement e : context_arr) {
                 String verb = e.getAsString();
-                List<String> tokens = tokenize.apply(verb);
-                verbs.addKeyword(String.join(" ", tokens), verbTybe);
+                verbs.addKeyword(verb, verbTybe);
+    //            List<String> tokens = tokenize.apply(verb);
+    //            verbs.addKeyword(String.join(" ", tokens), verbTybe);
             }
         }
         return verbs.build();

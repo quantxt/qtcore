@@ -1,5 +1,8 @@
 package com.quantxt.helper;
 
+import com.quantxt.helper.types.DateStrHelper;
+import com.quantxt.helper.types.ExtIntervalSimple;
+import com.quantxt.helper.types.QTField;
 import com.quantxt.types.MapSort;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -7,7 +10,6 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 import org.joda.time.format.DateTimeParser;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -25,26 +27,30 @@ import java.util.regex.Pattern;
 public class DateResolver {
 
     private static Logger logger = LoggerFactory.getLogger(DateResolver.class);
-    private final static HashMap<Pattern, int[]> DATE_PATTERN_MAP = new HashMap<>();
-    final private static String DATE_SEPARATOR_STR = "(?:[\\@\\.\\s,\\-\\/\\\\\\|\\&;]+|$)";
+    private final static List<DateStrHelper> DATE_PATTERN_MAP = new ArrayList<>();
+    final private static String DATE_SEPARATOR_STR = "(?:[\\@\\.\\s,\\-\\/\\(\\)\\\\\\|\\&;]+|$)";
     final private static String MONTH_NAME_STR   = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[a-zA-Z]*)";
     final private static String DAY_STR = "([0123][0-9]|[1-9])";
     final private static String MONTH_STR = "([01][0-9]|[1-9])";
-    final private static String YEAR_STR = "([12]\\d{3})";
+    final private static String YEAR_STR = "([12]\\d{3})";   // 4 digit year
+    final private static String YEAR_SHORT = "([01]\\d|[6789]\\d)";  // 2 digit year
+
+
+    final private static DateTimeFormatter MonthFormat = DateTimeFormat.forPattern("MMM");
 
     static {
- //       DATE_PATTERN_MAP.put(Pattern.compile("(?:^|\\s)" + MONTH_NAME_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{3, 1, 2});
-        DATE_PATTERN_MAP.put(Pattern.compile(MONTH_NAME_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{3, 1, 2});
-        DATE_PATTERN_MAP.put(Pattern.compile(DAY_STR + DATE_SEPARATOR_STR + MONTH_NAME_STR + DATE_SEPARATOR_STR + YEAR_STR + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{3, 2, 1});
-        DATE_PATTERN_MAP.put(Pattern.compile( MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + DATE_SEPARATOR_STR , Pattern.CASE_INSENSITIVE), new int[]{3, 1, 2});
-        DATE_PATTERN_MAP.put(Pattern.compile(YEAR_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + "(?:T|\\s|\\b)"), new int[]{1, 2, 3});
-        DATE_PATTERN_MAP.put(Pattern.compile( DAY_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + YEAR_STR + "(?:T|\\s|\\b)"), new int[]{3, 2, 1});
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_NAME_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+YEAR_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + ")" + "(?:T|\\s|\\b)"), new int[]{2, 3, 4}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_NAME_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 3, 2}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + "(?:T|\\s|\\b)"), new int[]{4, 3, 2}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("(^|[^\\d]+)("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_SHORT + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{5, 3, 4}));
     }
 
     private static DateTimeParser[] DATE_PARSER = {
             DateTimeFormat.forPattern("yyyy MMM dd").getParser(),
-            DateTimeFormat.forPattern("yyyy MM dd").getParser(),
-            DateTimeFormat.forPattern("yyyy dd MM").getParser()
+            DateTimeFormat.forPattern("yyyy MM dd").getParser()/*,
+            DateTimeFormat.forPattern("yyyy dd MM").getParser()*/
     };
 
     private static DateTimeFormatter DATE_FORMATTER = new DateTimeFormatterBuilder().append( null, DATE_PARSER ).toFormatter();
@@ -83,6 +89,7 @@ public class DateResolver {
     }
 
     private static String cleanTitle(String ttl){
+        if (ttl == null) return null;
         ttl = ttl.replaceAll("\\s+[\\|\\-]\\s+.*$", "");
         ttl = ttl.replaceAll("\\s+\\|\\s*$", "");
         return ttl;
@@ -101,50 +108,52 @@ public class DateResolver {
         // get the earliest date when pasre the attributes
         // but after the title!
         String title = cleanTitle(doc.title());
-        Elements titleMatching  = doc.body().select("*:containsOwn(" + title + ")");
-        List<Element> elements = doc.body().select("*");
         List<Element> afterTitle = new ArrayList<>();
         List<Element> beforeTitle = new ArrayList<>();
-        if (titleMatching != null){
-            for (Element matchingElem : titleMatching) {
-                int matchedLevel = ArticleBodyResolver.getLevel(matchingElem);
-                int levelLowRange = matchedLevel - 2;
-                int levelHighRange = matchedLevel + 4;
-                for (int i = 0; i < elements.size(); i++) {
-                    Element e = elements.get(i);
-                    if (!e.equals(matchingElem)) continue;
-      //              int indexBefore = Math.max(0, i - 10);
-      //              int indexAfter = Math.min(elements.size(), i + 100);
-                    int numAdded = 0;
-                    int index = i-1;
-                    while (numAdded < 10 && index>=0){
-                        Element eb = elements.get(index--);
-                        int level = ArticleBodyResolver.getLevel(eb);
-                        if (level > levelHighRange || level < levelLowRange) continue;
-                        numAdded++;
-                        beforeTitle.add(eb);
+        List<Element> elements = doc.body().select("*");
+        if (title != null && !title.isEmpty()) {
+            Elements titleMatching = doc.body().select("*:containsOwn(" + title + ")");
+            if (titleMatching != null) {
+                for (Element matchingElem : titleMatching) {
+                    int matchedLevel = ArticleBodyResolver.getLevel(matchingElem);
+                    int levelLowRange = matchedLevel - 2;
+                    int levelHighRange = matchedLevel + 4;
+                    for (int i = 0; i < elements.size(); i++) {
+                        Element e = elements.get(i);
+                        if (!e.equals(matchingElem)) continue;
+                        //              int indexBefore = Math.max(0, i - 10);
+                        //              int indexAfter = Math.min(elements.size(), i + 100);
+                        int numAdded = 0;
+                        int index = i - 1;
+                        while (numAdded < 10 && index >= 0) {
+                            Element eb = elements.get(index--);
+                            int level = ArticleBodyResolver.getLevel(eb);
+                            if (level > levelHighRange || level < levelLowRange) continue;
+                            numAdded++;
+                            beforeTitle.add(eb);
+                        }
+                        numAdded = 0;
+                        index = i - 1;
+                        while (numAdded < 100 && index < elements.size()) {
+                            Element eb = elements.get(index++);
+                            int level = ArticleBodyResolver.getLevel(eb);
+                            //          logger.info(level + " : " + eb.text());
+                            if (level > levelHighRange || level < levelLowRange) continue;
+                            numAdded++;
+                            afterTitle.add(eb);
+                        }
+                        //                 beforeTitle.addAll(elements.subList(indexBefore, i));
+                        //                 afterTitle.addAll(elements.subList(i, indexAfter));
+                        break;
                     }
-                    numAdded = 0;
-                    index = i-1;
-                    while (numAdded < 100 && index < elements.size()){
-                        Element eb = elements.get(index++);
-                        int level = ArticleBodyResolver.getLevel(eb);
-              //          logger.info(level + " : " + eb.text());
-                        if (level > levelHighRange || level < levelLowRange) continue;
-                        numAdded++;
-                        afterTitle.add(eb);
-                    }
-   //                 beforeTitle.addAll(elements.subList(indexBefore, i));
-   //                 afterTitle.addAll(elements.subList(i, indexAfter));
-                    break;
                 }
             }
-        }
 
 
-        if (afterTitle.size() != 0){
-            //we didn't find the title!
-            elements = afterTitle;
+            if (afterTitle.size() != 0) {
+                //we didn't find the title!
+                elements = afterTitle;
+            }
         }
 
 
@@ -203,12 +212,45 @@ public class DateResolver {
                                       int [] vals)
     {
         StringBuilder sb = new StringBuilder();
-        sb.append(m.group(vals[0]))
+        // check the day and month numbers are valid
+        //validate month
+        String month = m.group(vals[1]);
+        int year_int = 0;
+        try {
+            String year = m.group(vals[0]);
+            year_int = Integer.parseInt(year);
+            if (year_int > 2060) return null;
+            if (year_int < 30){ //2030
+                year_int += 2000;
+            } else if (year_int > 30 && year_int < 100){
+                year_int += 1900;
+            }
+
+            if (Integer.parseInt(month) > 12) return null;
+            if (Integer.parseInt(m.group(vals[2])) > 31) return null;
+        } catch (NumberFormatException ne){
+            try {
+                MonthFormat.parseDateTime(month);
+            } catch (Exception e){
+                logger.error("Not a valid month {}", month);
+                return null;
+            }
+        }
+        if (year_int == 0) return null;
+
+        sb.append(year_int)
                 .append(" ")
                 .append(m.group(vals[1]))
                 .append(" ")
                 .append(m.group(vals[2]));
-        DateTime justDate = DATE_FORMATTER.parseDateTime(sb.toString());
+        DateTime justDate = null;
+        try {
+            justDate = DATE_FORMATTER.parseDateTime(sb.toString());
+        } catch (Exception e){
+            logger.error(e.getMessage());
+        }
+        if (justDate == null) return null;
+
         String matched = m.group();
         int potentialTimeInString = date_string.indexOf(matched) + matched.length();
         String date_corrected_str = DATE_STR_FORMATTER.print(justDate)+ " " + date_string.substring(potentialTimeInString);
@@ -225,10 +267,15 @@ public class DateResolver {
         date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s+\\-" , "$1\\-");
         date_corrected_str = date_corrected_str.replace("CT" , "CST");
         date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s*(am|pm|AM|PM)\\s+(UTC|EST|PST|CST|MST)?.*$", "$1 $2 $3");
+        date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s+(UTC|EST|PST|CST|MST).*$", "$1 $2");
+
         // this is ba rule from here : http://giftedviz.com/2017/05/17/bank-of-england-holds-rates-in-7-1-vote/
         // 17 May 2017, 10:58 | Darnell Patrick
         date_corrected_str = date_corrected_str.replaceAll("\\|\\s+.*$", "");
         date_corrected_str = date_corrected_str.trim();
+
+        // now let's remove whatever if beyonf am/pm or timezone or hours
+
 
         try {
             DateTime date_time = date_time_formatter.parseDateTime(date_corrected_str);
@@ -240,21 +287,27 @@ public class DateResolver {
                 date_time = date_time.withZoneRetainFields(DateTimeZone.UTC);
                 return new DateResolver(date_time, date_corrected_str.length(), false);
             } catch (Exception e){
-                logger.debug("Time is not valid " + e);
+                logger.debug("Time was not parsed returning the date {} {}", date_corrected_str , justDate);
             }
 
         }
-        return null;
+        return new DateResolver(justDate, date_corrected_str.length(), false);
     }
 
     private  static DateTime findDate(String date_string){
-        if (date_string == null || date_string.length() > 400 || date_string.split("\\s+").length > 20) return null;
+        if (date_string == null) return null;
+        date_string = date_string.replace("\u00a0"," ");
+        if (date_string.length() > 1000) {
+            logger.error("String is too long > 1000");
+            return null;
+        }
+    //    if (date_string.length() > 400 || date_string.split("\\s+").length > 20) return null;
         List<DateResolver> allDates = new ArrayList<>();
-        for (Map.Entry<Pattern, int[]> e : DATE_PATTERN_MAP.entrySet()) {
-            Pattern p = e.getKey();
+        for (DateStrHelper e : DATE_PATTERN_MAP) {
+            Pattern p = e.pattern;
             Matcher m = p.matcher(date_string);
             if (m.find()) {
-                DateResolver dr = normalizeDateStr(date_string, m, e.getValue());
+                DateResolver dr = normalizeDateStr(date_string, m, e.digits);
                 if (dr == null) continue;
                 dr.textLength = date_string.length();
                 allDates.add(dr);
@@ -264,6 +317,66 @@ public class DateResolver {
             return null;
         }
         return getBestMatch(allDates);
+    }
+
+    // TODO: This method going to become the main method to call for extraction
+
+    private static ArrayList<ExtIntervalSimple> datefinderHelper(String substr, int offset){
+        ArrayList<ExtIntervalSimple> dates_found = new ArrayList<>();
+        ArrayList<Integer> starts = new ArrayList<>();
+        ArrayList<Integer> ends = new ArrayList<>();
+        for (DateStrHelper e : DATE_PATTERN_MAP) {
+            Pattern p = e.pattern;
+            Matcher m = p.matcher(substr);
+            while (m.find()) {
+                DateResolver dr = normalizeDateStr(substr, m, e.digits);
+                if (dr == null) continue;
+                int date_start_index = m.start();
+                int date_str_end_index = m.end() - 1;
+                ExtIntervalSimple ext = new ExtIntervalSimple(date_start_index + offset, date_str_end_index +offset);
+                //make sure the date found is unique:
+                boolean has_overalp = false;
+                for (int i =0; i< starts.size(); i++){
+                    if (date_start_index >= starts.get(i) && date_start_index <= ends.get(i)) {
+                        has_overalp = true;
+                        break;
+                    }
+                    if (date_str_end_index >= starts.get(i) && date_str_end_index <= ends.get(i)) {
+                        has_overalp = true;
+                        break;
+                    }
+                }
+                if (has_overalp) continue;
+                starts.add(date_start_index);
+                ends.add(date_str_end_index);
+                ext.setType(QTField.QTFieldType.DATETIME);
+                ext.setDatetimeValue(dr.date);
+                ext.setCustomData(m.group(1));
+                dates_found.add(ext);
+            }
+        }
+        return dates_found;
+    }
+
+    public static ArrayList<ExtIntervalSimple> resolveDate(String str){
+        if (str == null) return null;
+        str = str.replace("\u00a0"," ");
+        String string_copy = str;
+        //TODO: offset may not be needed
+        int offset = 0;
+        ArrayList<ExtIntervalSimple> dates = datefinderHelper(string_copy, offset);
+    //    while (true){
+    //        ArrayList<ExtIntervalSimple> dates_found = datefinderHelper(string_copy, offset);
+    //        if (dates_found.size() ==0) {// didn't find anything.. time to give up!
+    //            break;
+    //        }
+    //        for (ExtIntervalSimple  ext : dates_found) {
+    //            string_copy = string_copy.substring(ext.getEnd() - offset);
+    //            offset = ext.getEnd();
+    //            dates.add(ext);
+    //        }
+    //    }
+        return dates;
     }
 
     private static DateTime getBestMatch(List<DateResolver> allDates){
@@ -286,11 +399,11 @@ public class DateResolver {
             String date_string = elem.ownText();
             if (date_string == null || date_string.isEmpty()) continue;
    //         logger.info(date_string);
-            for (Map.Entry<Pattern, int[]> e : DATE_PATTERN_MAP.entrySet()) {
-                Pattern p = e.getKey();
+            for (DateStrHelper e : DATE_PATTERN_MAP) {
+                Pattern p = e.pattern;
                 Matcher m = p.matcher(date_string);
                 if (m.find()) {
-                    DateResolver dr = normalizeDateStr(date_string, m, e.getValue());
+                    DateResolver dr = normalizeDateStr(date_string, m, e.digits);
                     if (dr == null) continue;
                     dr.textLength = date_string.length();
                     dr.pos = i;
@@ -305,9 +418,16 @@ public class DateResolver {
     }
 
     public static void main(String[] args) throws Exception {
-        String str = "https://www.linkedin.com/in/tonybrownproductmarketer Indianapolis, Indiana Area - \u200ESenior Business Consultant - \u200ELiDow Enterprises/Customer Engagement/Customer Segmentation/Brand Positioning Dec 7, 2016 -";
-        DateTime dt =  DateResolver.resolveDateStr(str);
-        logger.info("date: " + dt);
-        logger.info("date: " + dt.withZone(DateTimeZone.UTC));
+   //     String txt  = "FW: Interprint Inc; Morten Enterprises Inc - Wind Submission; Eff 7/15/2018";
+        String txt = "InceptionPortfolio Benchmark (Annualized) Asset Class Composition (Net market value, as of 10/31/18) Fund Performance External: Local: Sovereign 68% Sovereign 2% The Fund returned -2.67% (net I-shares) in October, underperforming the Quasi Sovereign 10% Quasi Sovereign 0% benchmark by 51 bps.";
+        DateTime dt = DateResolver.resolveDateStr(txt);
+
+    //    Document doc = Jsoup.connect("https://www.sec.gov/Archives/edgar/data/34088/000003408817000041/xom10q2q2017.htm").get();
+    //    dt = DateResolver.resolveDate(doc);
+        if (dt != null) {
+            logger.info(dt.toString());
+        } else {
+            logger.info("Date was not found");
+        }
     }
 }

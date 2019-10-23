@@ -10,7 +10,10 @@ import java.util.*;
 
 public class Entity {
 
-    final private static String NAME = "Entity";
+    final public static String ENTITY_TYPE = "Entity";
+    final public static String ENTITY_NAME = "entity";
+    final public static String NER_TYPE = "Entity_NER";
+
     final private String name;
     final private String type;
     final private boolean isSpeaker;
@@ -21,14 +24,6 @@ public class Entity {
     private String[] context;
     private Trie contextTree;
 
-    /*
-    public Entity(String en, String [] enAlts){
-        name = en;
-        alts = enAlts;
-        isSpeaker = true;
-    }
-    */
-
     public Entity(String type, String en, String [] enAlts, boolean isSpeaker){
         this.type = type;
         name = en;
@@ -38,7 +33,7 @@ public class Entity {
     }
 
     public Entity(String en, String [] enAlts, boolean isSpeaker){
-        this.type = NAME;
+        this.type = ENTITY_TYPE;
         name = en;
         alts = enAlts;
         this.isSpeaker = isSpeaker;
@@ -73,30 +68,6 @@ public class Entity {
             }
         }
     }
-
-    /*
-
-    public void addPerson(String en, List<String> enAlts){
-        NamedEntity namedEntity = new NamedEntity(en, enAlts);
-        namedEntity.setEntity(this);
-        if (namedEntities == null) {
-            namedEntities = new ArrayList<>();
-            namedEntities.add(namedEntity);
-        } else {
-            boolean exists = false;
-            for (NamedEntity ne : namedEntities) {
-                if (en.equals(ne.getName())) {
-                    ne.addAlts(enAlts);
-                    exists = true;
-                    break;
-                }
-            }
-            if (!exists){
-                namedEntities.add(namedEntity);
-            }
-        }
-    }
-    */
 
     public void addContext(String [] cs){
         if (cs != null) {

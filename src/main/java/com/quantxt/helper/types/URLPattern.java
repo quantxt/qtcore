@@ -1,9 +1,13 @@
 package com.quantxt.helper.types;
 
+import lombok.Getter;
+import lombok.Setter;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,52 +16,85 @@ import java.util.regex.Pattern;
  * Created by matin on 3/14/17.
  */
 
+@Getter
+@Setter
 public class URLPattern {
 
     final private static Logger logger = LoggerFactory.getLogger(URLPattern.class);
+    final private static Pattern DATE = Pattern.compile("__DATE_(-?[1-9]\\d*|0)");
+    final private static Pattern NDATE = Pattern.compile("__MIN__(-?[1-9]\\d*|0)_(-?[1-9]\\d*|0)_(-?[1-9]\\d*|0)");
     final private static Pattern COUNTER = Pattern.compile("__COUNT_(\\d+)_(\\d+)_(\\d+)__");
     final private static Pattern QUERY   = Pattern.compile("__QUERY__");
+    final private static DateTimeFormatter dtf = DateTimeFormat.forPattern("MM/dd/yyyy");
 
-    private String [] links;
     private String urlPattern = "href=\"(http[^\"]+)\"";
-    private String host;
     private String name;
-    private boolean sortByDate;
+    private String mode = "html";
+    private String to;
+    private String from;
     private String selector;
-    private String sTitleField;
-    private String sBodyField;
-    private String dateField;
     private String dateSort = "";
     private String seprator = "+";
+
+    private boolean fastParent;
+    private boolean fastChild = true;
+    private boolean isTs = true;
+    private boolean capline = false;
+    private boolean sortByDate;
+    private boolean sortByPosition;  // for pdf scraping
+
+    private String  [] include_patterns;
+    private String  [] exclude_patterns;
+    private String  [] links;
+    private QTField [] fields;
+
     private Map<String, String> headers;
 
     public URLPattern(){
 
     }
 
-    public URLPattern(URLPattern up){
-        this.links = up.links;
+    public URLPattern(URLPattern up) {
         this.urlPattern = up.urlPattern;
-        this.host = up.host;
         this.name = up.name;
-        this.sortByDate = up.sortByDate;
+        this.mode = up.mode;
         this.selector = up.selector;
-        this.sTitleField = up.sTitleField;
-        this.sBodyField = up.sBodyField;
-        this.dateField = up.dateField;
         this.dateSort = up.dateSort;
         this.seprator = up.seprator;
-        this.headers = up.headers;
+        this.to = up.to;
+        this.from = up.from;
 
+        this.capline = up.capline;
+        this.fastParent = up.fastParent;
+        this.sortByDate = up.sortByDate;
+        this.sortByPosition = up.sortByPosition;
+        this.isTs = up.isTs;
+        this.fastChild = up.fastChild;
+
+        if (up.include_patterns != null) {
+            this.include_patterns = Arrays.copyOf(up.include_patterns, up.include_patterns.length);
+        }
+
+        if (up.exclude_patterns != null) {
+            this.exclude_patterns = Arrays.copyOf(up.exclude_patterns, up.exclude_patterns.length);
+        }
+
+        if (up.links != null) {
+            this.links = Arrays.copyOf(up.links, up.links.length);
+        }
+
+        if (up.fields != null) {
+            this.fields = Arrays.copyOf(up.fields, up.fields.length);
+        }
+
+        if (up.headers != null) {
+            this.headers = new HashMap<>();
+            for (Map.Entry<String, String> e : up.headers.entrySet()) {
+                this.headers.put(e.getKey(), e.getValue());
+            }
+        }
     }
 
-    public URLPattern(String [] links){
-        this.links = links;
-    }
-
-    public String getUrlPattern() {return urlPattern;}
-
-    public String getHost() {return host;}
     public String [] getLinks() {
         if (!sortByDate) {
             return links;
@@ -69,34 +106,47 @@ public class URLPattern {
         return linksCopy.toArray(new String[linksCopy.size()]);
     }
 
-    public String getsTitleField(){
-        return sTitleField;
-    }
+    public void addQueryAndPaging(Collection<String> all_search_terms,
+                                  DateTime fromDate) {
+        ArrayList<String> processed = new ArrayList<>();
 
-    public String getsBodyField(){
-        return sBodyField;
-    }
+        DateTime today = new DateTime();
+        //check for date
+        for (String searchUrl : links) {
+            if (searchUrl.contains("__DATE_")) {
+                Matcher date_match = DATE.matcher(searchUrl);
+                while (date_match.find()) {
+                    DateTime finaldate = today.plusDays(Integer.parseInt(date_match.group(1)));
+                    String date_str = dtf.print(finaldate);
+                    searchUrl = searchUrl.replace(date_match.group(0), date_str);
+                }
+                processed.add(searchUrl);
+            } else if (searchUrl.contains("__MIN__")) {
+                Matcher date_match = NDATE.matcher(searchUrl);
+                while (date_match.find()) {
+                    int end = Integer.parseInt(date_match.group(3));
+                    int start = Integer.parseInt(date_match.group(1));
+                    int offset = Integer.parseInt(date_match.group(2));
 
-    public String getName(){return name;}
-    public String getResElement() {return selector;}
-    public String getSeprator(){return seprator;}
-    public Map<String, String> getHeaders() {return headers;}
-    public String getDateField(){
-        return dateField;
-    }
+                    for (int i = start; i > end; i += offset) {
+                        DateTime start_d = today.plusDays(i + offset);
+                        DateTime end_d = today.plusDays(i - 1);
+                        // make sure this is after the anticipated fromDate
+                        if (fromDate != null && end_d.isBefore(fromDate)) continue;
+                        from = dtf.print(start_d);
+                        to = dtf.print(end_d);
+                        String srchCopy = searchUrl.replace(date_match.group(0), from);
+                        srchCopy = srchCopy.replace("__MAX__", to);
+                        processed.add(srchCopy);
+                    }
+                }
+            } else {
+                processed.add(searchUrl);
+            }
+        }
 
-    public void setUrlPattern(String p){
-        urlPattern = p;
-    }
-    public void setLinks(String [] links) {
-        this.links = links;
-    }
-
-    public void addQueryAndPaging(Collection<String> all_search_terms) throws UnsupportedEncodingException
-    {
         ArrayList<String> counter_added = new ArrayList<>();
-        for (String  searchUrl : links) {
-
+        for (String searchUrl : processed) {
             Matcher counter_match = COUNTER.matcher(searchUrl);
 
             if (counter_match.find()) {
@@ -116,12 +166,11 @@ public class URLPattern {
         }
 
         Set<String> links = new HashSet<>();
-        for (String l : counter_added){
+        for (String l : counter_added) {
             Matcher query_match = QUERY.matcher(l);
             if (query_match.find()) {
                 for (String search_term : all_search_terms) {
-                    search_term = search_term.toLowerCase().trim().replace(" " , seprator);
-
+                    search_term = search_term.trim().replace(" ", seprator);
                     String searchLink = l.replace(query_match.group(0), search_term);
                     if (links.contains(searchLink)) continue;
                     links.add(searchLink);
@@ -132,17 +181,5 @@ public class URLPattern {
         }
 
         this.links = links.toArray(new String[links.size()]);
-    }
-
-    public static void main(String[] args) throws Exception {
-        String bas_google_search_url = "https://www.google.com/search?q=__QUERY__&start=__COUNT_0_10_50__&num=50&lr=lang_en&tbas=0&biw=1280&bih=726";
-        URLPattern up = new URLPattern();
-        up.links = new String[] {bas_google_search_url};
-        List<String> terms = new ArrayList<>();
-        terms.add("iran india");
-        up.addQueryAndPaging(terms);
-        for (String s : up.links){
-            logger.info(s);
-        }
     }
 }
