@@ -28,7 +28,7 @@ public class DateResolver {
 
     private static Logger logger = LoggerFactory.getLogger(DateResolver.class);
     private final static List<DateStrHelper> DATE_PATTERN_MAP = new ArrayList<>();
-    final private static String DATE_SEPARATOR_STR = "(?:[\\@\\.\\s,\\-\\/\\)\\\\\\|\\&;]+|$)";
+    final private static String DATE_SEPARATOR_STR = "(?:[\\@\\.\\s,\\-\\/\\(\\)\\\\\\|\\&;]+|$)";
     final private static String MONTH_NAME_STR   = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[a-zA-Z]*)";
     final private static String DAY_STR = "([0123][0-9]|[1-9])";
     final private static String MONTH_STR = "([01][0-9]|[1-9])";
@@ -44,7 +44,7 @@ public class DateResolver {
         DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+YEAR_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + ")" + "(?:T|\\s|\\b)"), new int[]{2, 3, 4}));
         DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_NAME_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 3, 2}));
         DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + "(?:T|\\s|\\b)"), new int[]{4, 3, 2}));
-        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_SHORT + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("(^|[^\\d]+)("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_SHORT + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{5, 3, 4}));
     }
 
     private static DateTimeParser[] DATE_PARSER = {

@@ -41,6 +41,7 @@ public class URLPattern {
     private boolean isTs = true;
     private boolean capline = false;
     private boolean sortByDate;
+    private boolean sortByPosition;  // for pdf scraping
 
     private String  [] include_patterns;
     private String  [] exclude_patterns;
@@ -66,6 +67,7 @@ public class URLPattern {
         this.capline = up.capline;
         this.fastParent = up.fastParent;
         this.sortByDate = up.sortByDate;
+        this.sortByPosition = up.sortByPosition;
         this.isTs = up.isTs;
         this.fastChild = up.fastChild;
 

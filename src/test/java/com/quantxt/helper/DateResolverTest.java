@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertTrue;
 
@@ -243,5 +245,26 @@ public class DateResolverTest {
             logger.error(e.getMessage());
         }
         return null;
+    }
+
+    @Test
+    public void date_string_1() {
+        String str = "2011-05-19";
+        DateTime dt = DateResolver.resolveDateStr(str);
+        DateTime datetime = new DateTime("2011-05-19T00:00:00", DateTimeZone.UTC);
+
+        assertTrue("Expected " + datetime + " but was " + dt, datetime.equals(dt));
+
+    }
+
+    @Test
+    public void date_string_2() {
+        String str = "Hello2011-05-19";
+        DateTime dt = DateResolver.resolveDateStr(str);
+        DateTime datetime = new DateTime("2011-05-19T00:00:00", DateTimeZone.UTC);
+
+        assertTrue("Expected " + datetime + " but was " + dt, datetime.equals(dt));
+
+
     }
 }

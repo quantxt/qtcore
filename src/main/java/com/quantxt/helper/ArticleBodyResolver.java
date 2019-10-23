@@ -525,7 +525,7 @@ public class ArticleBodyResolver {
     public static void main(String[] args) throws Exception {
 
         String[] urls = {
-                "http://www.yomiuri.co.jp/national/20180529-OYT1T50136.html?from=ytop_main8"
+                "https://www.washingtonpost.com/business/2019/05/22/teslas-automatic-lane-changing-feature-is-far-less-competent-than-human-driver-consumer-reports-says/"
         //        "https://www.duolingo.com/comment/13955228/A-guide-to-the-Russian-word-order"
           //      "https://www.jpost.com/Blogs/A-Mid-East-Journal/The-trouble-with-Iran-558371"
            //     "http://dailycaller.com/2018/05/27/iran-deal-architect-chants-death-to-america-john-kerry/"
@@ -560,16 +560,19 @@ public class ArticleBodyResolver {
             }
         } };
 
+
         // Install the all-trusting trust manager
         SSLContext sc = SSLContext.getInstance("SSL");
         sc.init(null, trustAllCerts, new java.security.SecureRandom());
         HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
         final String USER_AGENT = "Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6";
 
+        System.setProperty("javax.net.debug", "all");
         for (String u : urls) {
             logger.info(u);
             try {
 
+                long start = System.currentTimeMillis();
                 Document doc = Jsoup.connect(u)
                         .followRedirects(true)
                         .referrer("http://www.google.com")
@@ -579,6 +582,8 @@ public class ArticleBodyResolver {
                         .method(Connection.Method.GET)
                         .get();
 
+                long took = System.currentTimeMillis() - start;
+                logger.info("fetched in {}", took);
                 ArticleBodyResolver abr = new ArticleBodyResolver(doc, 1);
                 abr.analyze3();
                 List<Element> elems = abr.getText();
