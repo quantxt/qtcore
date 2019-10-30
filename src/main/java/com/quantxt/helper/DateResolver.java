@@ -44,7 +44,7 @@ public class DateResolver {
         DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+YEAR_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + ")" + "(?:T|\\s|\\b)"), new int[]{2, 3, 4}));
         DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_NAME_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 3, 2}));
         DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+DAY_STR + DATE_SEPARATOR_STR + MONTH_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + "(?:T|\\s|\\b)"), new int[]{4, 3, 2}));
-        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("(^|[^\\d]+)("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_SHORT + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{5, 3, 4}));
+        DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("(?:^|[^\\d]+)("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_SHORT + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
     }
 
     private static DateTimeParser[] DATE_PARSER = {
@@ -331,8 +331,8 @@ public class DateResolver {
             while (m.find()) {
                 DateResolver dr = normalizeDateStr(substr, m, e.digits);
                 if (dr == null) continue;
-                int date_start_index = m.start();
-                int date_str_end_index = m.end() - 1;
+                int date_start_index = m.start(1);
+                int date_str_end_index = m.end(1) - 1;
                 ExtIntervalSimple ext = new ExtIntervalSimple(date_start_index + offset, date_str_end_index +offset);
                 //make sure the date found is unique:
                 boolean has_overalp = false;
@@ -421,6 +421,7 @@ public class DateResolver {
    //     String txt  = "FW: Interprint Inc; Morten Enterprises Inc - Wind Submission; Eff 7/15/2018";
         String txt = "InceptionPortfolio Benchmark (Annualized) Asset Class Composition (Net market value, as of 10/31/18) Fund Performance External: Local: Sovereign 68% Sovereign 2% The Fund returned -2.67% (net I-shares) in October, underperforming the Quasi Sovereign 10% Quasi Sovereign 0% benchmark by 51 bps.";
         DateTime dt = DateResolver.resolveDateStr(txt);
+        ArrayList<ExtIntervalSimple> vals = DateResolver.resolveDate(txt);
 
     //    Document doc = Jsoup.connect("https://www.sec.gov/Archives/edgar/data/34088/000003408817000041/xom10q2q2017.htm").get();
     //    dt = DateResolver.resolveDate(doc);

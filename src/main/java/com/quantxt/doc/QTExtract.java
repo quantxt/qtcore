@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
  * Created by matin on 8/18/17.
  */
 
+@Deprecated
 public interface QTExtract {
 
     double [] tag(String str);

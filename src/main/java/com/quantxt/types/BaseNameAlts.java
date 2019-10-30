@@ -4,6 +4,8 @@ package com.quantxt.types;
 /**
  * Created by matin on 4/6/17.
  */
+
+@Deprecated
 public class BaseNameAlts<T>  {
     private String name;
     private double score;
