@@ -7,6 +7,7 @@ import java.util.*;
 /**
  * Created by matin on 4/4/17.
  */
+@Deprecated
 public class Extraction {
 
     public enum Extractions {
