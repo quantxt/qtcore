@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.quantxt.helper.types.ExtInterval;
 import com.quantxt.trie.Emit;
-import com.quantxt.types.NamedEntity;
 
 import static com.quantxt.helper.types.QTField.QTFieldType.*;
 import static com.quantxt.types.Entity.NER_TYPE;
@@ -181,11 +180,9 @@ public abstract class QTDocument {
             for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
                 String keyGroup = entType.getKey();
                 for (Emit matchedName : entType.getValue()) {
-                    NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
-                    String key = ne.getName();
+                    String key = (String) matchedName.getCustomeData();
                     int keyEnd = matchedName.getEnd();
                     int end_of_key_in_original_string = start_search + keyEnd;
-
 
                     // for now we require the key to be before the value
                     if (keyEnd < 0) {
@@ -313,8 +310,8 @@ public abstract class QTDocument {
                 if (name_match_curr.size() > 0) {
                     for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
                         for (Emit matchedName : entType.getValue()) {
-                            NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
-                            workingChild.addEntity(entType.getKey(), ne.getName());
+                            String ne = (String) matchedName.getCustomeData();
+                            workingChild.addEntity(entType.getKey(), ne);
                             //			logger.info("\t" + entType.getKey() + " | " + ne.getName());
                         }
                     }
