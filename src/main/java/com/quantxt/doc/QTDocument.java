@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 
 import com.quantxt.helper.types.ExtIntervalSimple;
 import com.quantxt.helper.types.QTField;
-import com.quantxt.types.Dictionary;
+import com.quantxt.types.DictSearch;
 import lombok.Getter;
 import lombok.Setter;
 import org.joda.time.DateTime;
@@ -97,11 +97,11 @@ public abstract class QTDocument {
         return 0;
     }
 
-    public void extractKeyValues(Dictionary dictionary,
+    public void extractKeyValues(DictSearch dictSearch,
                                  String pre_context)
     {
-        QTField.QTFieldType valueType = dictionary.getValType();
-        if (valueType == null) return;
+        QTField.QTFieldType valueType = dictSearch.getDictionary().getValType();
+        if (valueType == null || valueType == NONE) return;
 
         final String rawSent_curr = title;
 
@@ -119,8 +119,8 @@ public abstract class QTDocument {
             if (valueType == DATETIME) {
                 helper.getDatetimeValues(rawSent_curr, pre_context, values);
             } else if (valueType == STRING || valueType == KEYWORD) {
-                Pattern regex = dictionary.getPattern();
-                int[] groups = dictionary.getGroups();
+                Pattern regex = dictSearch.getDictionary().getPattern();
+                int[] groups = dictSearch.getDictionary().getGroups();
                 helper.getPatternValues(rawSent_curr, pre_context, regex, groups, values);
             } else if (valueType == NOUN || valueType == VERB) {
                 List<String> tokens = helper.tokenize(rawSent_curr);
@@ -139,7 +139,7 @@ public abstract class QTDocument {
         // sort based on first index
         values.sort((ExtIntervalSimple s1, ExtIntervalSimple s2)->s1.getStart()-s2.getStart());
 
-        Pattern padding = dictionary.getKeyPadding();
+        Pattern padding = dictSearch.getDictionary().getKeyPadding();
         for (int i = 0; i < values.size(); i++) {
             ExtIntervalSimple intv = values.get(i);
             final int valStart = intv.getStart();
@@ -167,14 +167,14 @@ public abstract class QTDocument {
                 start_search = 0;
             }
 
-            int end_search = valStart + dictionary.getSearch_distance();
+            int end_search = valStart + dictSearch.getDictionary().getSearch_distance();
             if (end_search > rawSent_curr.length()) {
                 end_search = rawSent_curr.length();
             }
 
             // find potential keys
             String str_2_search = rawSent_curr.substring(start_search, end_search);
-            Map<String, Collection<Emit>> name_match_curr = dictionary.search(str_2_search);
+            Map<String, Collection<Emit>> name_match_curr = dictSearch.search(str_2_search);
             if (name_match_curr.size() == 0) continue;
 
             for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
@@ -214,7 +214,7 @@ public abstract class QTDocument {
 
                     // now the first value should be close enough to key
                     //TODO: this ca be done just be the regex and dist can be removed
-                    if ((rowValues.get(0).getStart() - end_of_key_in_original_string_after_shift) > dictionary.getSearch_distance()) continue;
+                    if ((rowValues.get(0).getStart() - end_of_key_in_original_string_after_shift) > dictSearch.getDictionary().getSearch_distance()) continue;
 
                     if (this.values == null) this.values = new ArrayList<>();
 
@@ -265,7 +265,7 @@ public abstract class QTDocument {
         }
     }
 
-    public ArrayList<QTDocument> extractEntityMentions(Dictionary dictionary,
+    public ArrayList<QTDocument> extractEntityMentions(DictSearch dictSearch,
                                                        boolean onlyIncludeUttsWithEntities,
                                                        boolean extractNounAndVebPhrases,
                                                        boolean splitOnNewLine) {
@@ -290,13 +290,13 @@ public abstract class QTDocument {
             String[] parts = tokens.toArray(new String[tokens.size()]);
             if (!helper.isSentence(rawSent_curr, tokens)) continue;
 
-            if (dictionary != null) {
-                Map<String, Collection<Emit>> name_match_curr = dictionary.search(rawSent_curr);
+            if (dictSearch != null) {
+                Map<String, Collection<Emit>> name_match_curr = dictSearch.search(rawSent_curr);
                 if (name_match_curr.size() == 0 && i > 0) {
                     List<String> tokens_b = helper.tokenize(rawSent_before);
                     if (helper.isSentence(rawSent_before, tokens_b)) {
 
-                        Map<String, Collection<Emit>> name_match_befr = dictionary.search(rawSent_before);
+                        Map<String, Collection<Emit>> name_match_befr = dictSearch.search(rawSent_before);
                         for (Map.Entry<String, Collection<Emit>> entType : name_match_befr.entrySet()) {
                             Collection<Emit> ent_set = entType.getValue();
                             if (ent_set.size() != 1) continue;
