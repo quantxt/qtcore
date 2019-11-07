@@ -7,7 +7,7 @@ import java.util.Collection;
 
 @Getter
 @Setter
-public class DictSearch<T> {
+public abstract class DictSearch<T> {
 
     public enum Mode {
         ORDERED_SPAN, FUZZY_ORDERED_SPAN, SPAN, FUZZY_SPAN, PARTIAL_SPAN,
@@ -22,9 +22,5 @@ public class DictSearch<T> {
     protected AnalyzType [] analyzType = new AnalyzType[] {AnalyzType.STANDARD};
     protected Dictionary dictionary;
 
-    public Collection<T> search(final String query_string)
-    {
-        //implement this
-        return null;
-    }
+    public abstract Collection<T> search(final String query_string);
 }
