@@ -10,6 +10,8 @@ import java.util.TreeSet;
 /**
  * Created by matin on 3/31/17.
  */
+
+@Deprecated
 public class NamedEntity {
 
     final public static String ENTITY = "Entity";

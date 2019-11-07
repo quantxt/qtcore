@@ -26,6 +26,7 @@ public class Dictionary {
     protected Pattern keyPadding;
     protected Pattern pattern;
     protected int [] groups;
+    protected String name;
 
 
     public Dictionary(Map<String, List<DictItm>> vocab_map){
@@ -35,9 +36,11 @@ public class Dictionary {
         this.keyPadding = default_kay_padding;
         this.pattern = null;
         this.groups = null;
+        this.name = null;
     }
 
     public Dictionary(Map<String, List<DictItm>> vocab_map,
+                      String name,
                       QTField.QTFieldType valType,
                       int search_distance,
                       Pattern keyPadding,
@@ -49,5 +52,6 @@ public class Dictionary {
         this.keyPadding = keyPadding;
         this.pattern = pattern;
         this.groups = groups;
+        this.name = name;
     }
 }

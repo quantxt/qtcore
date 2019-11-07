@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 
 import com.quantxt.helper.types.ExtIntervalSimple;
 import com.quantxt.helper.types.QTField;
+import com.quantxt.helper.types.QTMatch;
 import com.quantxt.types.DictSearch;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.quantxt.helper.types.ExtInterval;
-import com.quantxt.trie.Emit;
 
 import static com.quantxt.helper.types.QTField.QTFieldType.*;
 import static com.quantxt.types.Entity.NER_TYPE;
@@ -97,7 +97,7 @@ public abstract class QTDocument {
         return 0;
     }
 
-    public void extractKeyValues(DictSearch dictSearch,
+    public void extractKeyValues(DictSearch<QTMatch> dictSearch,
                                  String pre_context)
     {
         QTField.QTFieldType valueType = dictSearch.getDictionary().getValType();
@@ -174,19 +174,19 @@ public abstract class QTDocument {
 
             // find potential keys
             String str_2_search = rawSent_curr.substring(start_search, end_search);
-            Map<String, Collection<Emit>> name_match_curr = dictSearch.search(str_2_search);
+            Collection<QTMatch> name_match_curr = dictSearch.search(str_2_search);
             if (name_match_curr.size() == 0) continue;
 
-            for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
-                String keyGroup = entType.getKey();
-                for (Emit matchedName : entType.getValue()) {
-                    String key = (String) matchedName.getCustomeData();
-                    int keyEnd = matchedName.getEnd();
+            for (QTMatch qtMatch : name_match_curr) {
+                String keyGroup = qtMatch.getGroup();
+            //    for (QTMatch matchedName : entType.getValue()) {
+                    String key = qtMatch.getCustomData();
+                    int keyEnd = qtMatch.getEnd();
                     int end_of_key_in_original_string = start_search + keyEnd;
 
                     // for now we require the key to be before the value
                     if (keyEnd < 0) {
-                        logger.error("key wrong ---- {} ----- in '{}'", matchedName.getKeyword(), title);
+                        logger.error("key wrong ---- {} ----- in '{}'", qtMatch.getKeyword(), title);
                         continue;
                     }
 
@@ -223,7 +223,7 @@ public abstract class QTDocument {
                     extInterval.setKey(key);
                     extInterval.setExtIntervalSimples(rowValues);
                     this.values.add(extInterval);
-                }
+        //        }
             }
         }
     }
@@ -265,7 +265,7 @@ public abstract class QTDocument {
         }
     }
 
-    public ArrayList<QTDocument> extractEntityMentions(DictSearch dictSearch,
+    public ArrayList<QTDocument> extractEntityMentions(DictSearch<QTMatch> dictSearch,
                                                        boolean onlyIncludeUttsWithEntities,
                                                        boolean extractNounAndVebPhrases,
                                                        boolean splitOnNewLine) {
@@ -291,29 +291,29 @@ public abstract class QTDocument {
             if (!helper.isSentence(rawSent_curr, tokens)) continue;
 
             if (dictSearch != null) {
-                Map<String, Collection<Emit>> name_match_curr = dictSearch.search(rawSent_curr);
+               Collection<QTMatch> name_match_curr = dictSearch.search(rawSent_curr);
                 if (name_match_curr.size() == 0 && i > 0) {
                     List<String> tokens_b = helper.tokenize(rawSent_before);
                     if (helper.isSentence(rawSent_before, tokens_b)) {
 
-                        Map<String, Collection<Emit>> name_match_befr = dictSearch.search(rawSent_before);
-                        for (Map.Entry<String, Collection<Emit>> entType : name_match_befr.entrySet()) {
-                            Collection<Emit> ent_set = entType.getValue();
-                            if (ent_set.size() != 1) continue;
+                        Collection<QTMatch> name_match_befr = dictSearch.search(rawSent_before);
+                        //TODO: this needs to be revised
+                        if (name_match_befr.size() != 1) continue;
+                        for (QTMatch qtMatch : name_match_befr) {
+                            String vocab_name = qtMatch.getGroup();
+                    //        Collection<QTMatch> ent_set = e.getValue();
                             // simple co-ref for now
                             if (helper.getPronouns().contains(parts[0])) {
-                                name_match_curr.put(entType.getKey(), ent_set);
+                                name_match_curr.add(qtMatch);
                             }
                         }
                     }
                 }
                 if (name_match_curr.size() > 0) {
-                    for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
-                        for (Emit matchedName : entType.getValue()) {
-                            String ne = (String) matchedName.getCustomeData();
-                            workingChild.addEntity(entType.getKey(), ne);
+                    for (QTMatch qtMatch : name_match_curr) {
+                        String ne = qtMatch.getCustomData();
+                        workingChild.addEntity(qtMatch.getGroup(), ne);
                             //			logger.info("\t" + entType.getKey() + " | " + ne.getName());
-                        }
                     }
                 }
                 if (name_match_curr.size() == 0 && onlyIncludeUttsWithEntities) continue;
