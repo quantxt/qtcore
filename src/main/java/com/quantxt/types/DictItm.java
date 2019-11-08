@@ -8,7 +8,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public abstract class DictItm {
+public class DictItm {
     private String key;
     private List<String> value;
 

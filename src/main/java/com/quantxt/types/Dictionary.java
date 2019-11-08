@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 
 @Getter
 @Setter
-public abstract class Dictionary {
+public  class Dictionary {
 
     final private static Pattern default_kay_padding = Pattern.compile("^\\s+");
 

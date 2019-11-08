@@ -30,6 +30,10 @@ public abstract class QTDocument {
         ENGLISH, SPANISH, GERMAN, FRENCH, ARABIC, RUSSIAN, FARSI, JAPANESE, PORTUGUESE
     }
 
+    public enum CHUNK {
+        LINE, BULLET, SENTENCE, PARAGRAPH, PAGE, NONE
+    }
+
     final private static int MAX_Key_Length = 150;
 
     final private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");//
@@ -78,12 +82,11 @@ public abstract class QTDocument {
         return dateFormat.format(date);
     }
 
-    public abstract List<QTDocument> getChilds(boolean splitOnNewLine);
+    public abstract List<QTDocument> getChunks(CHUNK chunking);
 
     public abstract String Translate(String text, Language inLang, Language outLang);
 
     public abstract boolean isStatement(String s);
-
 
     private int getNextValidIndex(final Pattern pattern,
                                   String str) {
@@ -268,9 +271,9 @@ public abstract class QTDocument {
     public ArrayList<QTDocument> extractEntityMentions(DictSearch<QTMatch> dictSearch,
                                                        boolean onlyIncludeUttsWithEntities,
                                                        boolean extractNounAndVebPhrases,
-                                                       boolean splitOnNewLine) {
+                                                       CHUNK chunking) {
         ArrayList<QTDocument> quotes = new ArrayList<>();
-        List<QTDocument> childs = getChilds(splitOnNewLine);
+        List<QTDocument> childs = getChunks(chunking);
 
         int numSent = childs.size();
 
