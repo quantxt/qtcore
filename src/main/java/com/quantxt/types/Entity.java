@@ -8,6 +8,7 @@ import java.util.*;
  * Created by matin on 3/22/17.
  */
 
+@Deprecated
 public class Entity {
 
     final public static String ENTITY_TYPE = "Entity";

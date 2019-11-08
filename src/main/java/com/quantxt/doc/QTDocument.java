@@ -8,6 +8,8 @@ import java.util.regex.Pattern;
 
 import com.quantxt.helper.types.ExtIntervalSimple;
 import com.quantxt.helper.types.QTField;
+import com.quantxt.helper.types.QTMatch;
+import com.quantxt.types.DictSearch;
 import lombok.Getter;
 import lombok.Setter;
 import org.joda.time.DateTime;
@@ -16,8 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.quantxt.helper.types.ExtInterval;
-import com.quantxt.trie.Emit;
-import com.quantxt.types.NamedEntity;
 
 import static com.quantxt.helper.types.QTField.QTFieldType.*;
 import static com.quantxt.types.Entity.NER_TYPE;
@@ -28,6 +28,10 @@ public abstract class QTDocument {
 
     public enum Language {
         ENGLISH, SPANISH, GERMAN, FRENCH, ARABIC, RUSSIAN, FARSI, JAPANESE, PORTUGUESE
+    }
+
+    public enum CHUNK {
+        LINE, BULLET, SENTENCE, PARAGRAPH, PAGE, NONE
     }
 
     final private static int MAX_Key_Length = 150;
@@ -78,14 +82,11 @@ public abstract class QTDocument {
         return dateFormat.format(date);
     }
 
-    public abstract List<QTDocument> getChilds(boolean splitOnNewLine);
-
-    public abstract double[] getVectorizedTitle(QTExtract extract);
+    public abstract List<QTDocument> getChunks(CHUNK chunking);
 
     public abstract String Translate(String text, Language inLang, Language outLang);
 
     public abstract boolean isStatement(String s);
-
 
     private int getNextValidIndex(final Pattern pattern,
                                   String str) {
@@ -99,39 +100,30 @@ public abstract class QTDocument {
         return 0;
     }
 
-    public void extractKeyValues(QTExtract speaker,
-                                 String pre_context,
-                                 Pattern skipPattern,
-                                 int dist) {
-        // TODO: hacky quick check
-        // If there are no numbers then don't bother
+    public void extractKeyValues(DictSearch<QTMatch> dictSearch,
+                                 String pre_context)
+    {
+        QTField.QTFieldType valueType = dictSearch.getDictionary().getValType();
+        if (valueType == null || valueType == NONE) return;
 
-        QTField.QTFieldType valueType = speaker.getType();
+        final String rawSent_curr = title;
 
-        if (valueType == null || valueType == DOUBLE || valueType == INT || valueType == SHORT) {
+        ArrayList<ExtIntervalSimple> values = new ArrayList<>();
+        // get potential values
+        if (valueType == DOUBLE || valueType == FLOAT || valueType == INT ||
+                valueType == SHORT || valueType == MONEY || valueType == PERCENT) {
             if (!(title.contains("0") || title.contains("1") || title.contains("2") || title.contains("3") ||
                     title.contains("4") || title.contains("5") || title.contains("6") || title.contains("7") ||
                     title.contains("8") || title.contains("9"))) {
                 return;
             }
-        }
-
-//		boolean valueFirst = true;
-        final String rawSent_curr = title;
-
-
-        //	if (valueFirst){
-        ArrayList<ExtIntervalSimple> values = new ArrayList<>();
-        // get potential values
-        if (valueType == null || valueType == DOUBLE || valueType == FLOAT ||
-                valueType == INT || valueType == SHORT || valueType == MONEY || valueType == PERCENT) {
             helper.getValues(rawSent_curr, pre_context, values);
         } else {
             if (valueType == DATETIME) {
                 helper.getDatetimeValues(rawSent_curr, pre_context, values);
             } else if (valueType == STRING || valueType == KEYWORD) {
-                Pattern regex = speaker.getPattern();
-                int[] groups = speaker.getGroups();
+                Pattern regex = dictSearch.getDictionary().getPattern();
+                int[] groups = dictSearch.getDictionary().getGroups();
                 helper.getPatternValues(rawSent_curr, pre_context, regex, groups, values);
             } else if (valueType == NOUN || valueType == VERB) {
                 List<String> tokens = helper.tokenize(rawSent_curr);
@@ -150,6 +142,7 @@ public abstract class QTDocument {
         // sort based on first index
         values.sort((ExtIntervalSimple s1, ExtIntervalSimple s2)->s1.getStart()-s2.getStart());
 
+        Pattern padding = dictSearch.getDictionary().getKeyPadding();
         for (int i = 0; i < values.size(); i++) {
             ExtIntervalSimple intv = values.get(i);
             final int valStart = intv.getStart();
@@ -177,33 +170,31 @@ public abstract class QTDocument {
                 start_search = 0;
             }
 
-            int end_search = valStart + dist;
+            int end_search = valStart + dictSearch.getDictionary().getSearch_distance();
             if (end_search > rawSent_curr.length()) {
                 end_search = rawSent_curr.length();
             }
 
             // find potential keys
             String str_2_search = rawSent_curr.substring(start_search, end_search);
-            Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(str_2_search);
+            Collection<QTMatch> name_match_curr = dictSearch.search(str_2_search);
             if (name_match_curr.size() == 0) continue;
 
-            for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
-                String keyGroup = entType.getKey();
-                for (Emit matchedName : entType.getValue()) {
-                    NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
-                    String key = ne.getName();
-                    int keyEnd = matchedName.getEnd();
+            for (QTMatch qtMatch : name_match_curr) {
+                String keyGroup = qtMatch.getGroup();
+            //    for (QTMatch matchedName : entType.getValue()) {
+                    String key = qtMatch.getCustomData();
+                    int keyEnd = qtMatch.getEnd();
                     int end_of_key_in_original_string = start_search + keyEnd;
-
 
                     // for now we require the key to be before the value
                     if (keyEnd < 0) {
-                        logger.error("key wrong ---- {} ----- in '{}'", matchedName.getKeyword(), title);
+                        logger.error("key wrong ---- {} ----- in '{}'", qtMatch.getKeyword(), title);
                         continue;
                     }
 
                     String string_to_pad_after_key = rawSent_curr.substring(end_of_key_in_original_string);
-                    Matcher m = skipPattern.matcher(string_to_pad_after_key);
+                    Matcher m = padding.matcher(string_to_pad_after_key);
                     int shift = 0;
                     if (m.find()) {
                         shift = m.end();
@@ -226,7 +217,7 @@ public abstract class QTDocument {
 
                     // now the first value should be close enough to key
                     //TODO: this ca be done just be the regex and dist can be removed
-                    if ((rowValues.get(0).getStart() - end_of_key_in_original_string_after_shift) > dist) continue;
+                    if ((rowValues.get(0).getStart() - end_of_key_in_original_string_after_shift) > dictSearch.getDictionary().getSearch_distance()) continue;
 
                     if (this.values == null) this.values = new ArrayList<>();
 
@@ -235,7 +226,7 @@ public abstract class QTDocument {
                     extInterval.setKey(key);
                     extInterval.setExtIntervalSimples(rowValues);
                     this.values.add(extInterval);
-                }
+        //        }
             }
         }
     }
@@ -277,12 +268,12 @@ public abstract class QTDocument {
         }
     }
 
-    public ArrayList<QTDocument> extractEntityMentions(QTExtract speaker,
+    public ArrayList<QTDocument> extractEntityMentions(DictSearch<QTMatch> dictSearch,
                                                        boolean onlyIncludeUttsWithEntities,
                                                        boolean extractNounAndVebPhrases,
-                                                       boolean splitOnNewLine) {
+                                                       CHUNK chunking) {
         ArrayList<QTDocument> quotes = new ArrayList<>();
-        List<QTDocument> childs = getChilds(splitOnNewLine);
+        List<QTDocument> childs = getChunks(chunking);
 
         int numSent = childs.size();
 
@@ -301,38 +292,31 @@ public abstract class QTDocument {
             List<String> tokens = helper.tokenize(rawSent_curr);
             String[] parts = tokens.toArray(new String[tokens.size()]);
             if (!helper.isSentence(rawSent_curr, tokens)) continue;
-/*
-            try {
-                Files.write(Paths.get("snp500.txt"), (orig  +"\n").getBytes(), StandardOpenOption.APPEND);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-*/
 
-            if (speaker != null && speaker.hasEntities()) {
-                Map<String, Collection<Emit>> name_match_curr = speaker.parseNames(rawSent_curr);
+            if (dictSearch != null) {
+               Collection<QTMatch> name_match_curr = dictSearch.search(rawSent_curr);
                 if (name_match_curr.size() == 0 && i > 0) {
                     List<String> tokens_b = helper.tokenize(rawSent_before);
                     if (helper.isSentence(rawSent_before, tokens_b)) {
 
-                        Map<String, Collection<Emit>> name_match_befr = speaker.parseNames(rawSent_before);
-                        for (Map.Entry<String, Collection<Emit>> entType : name_match_befr.entrySet()) {
-                            Collection<Emit> ent_set = entType.getValue();
-                            if (ent_set.size() != 1) continue;
+                        Collection<QTMatch> name_match_befr = dictSearch.search(rawSent_before);
+                        //TODO: this needs to be revised
+                        if (name_match_befr.size() != 1) continue;
+                        for (QTMatch qtMatch : name_match_befr) {
+                            String vocab_name = qtMatch.getGroup();
+                    //        Collection<QTMatch> ent_set = e.getValue();
                             // simple co-ref for now
                             if (helper.getPronouns().contains(parts[0])) {
-                                name_match_curr.put(entType.getKey(), ent_set);
+                                name_match_curr.add(qtMatch);
                             }
                         }
                     }
                 }
                 if (name_match_curr.size() > 0) {
-                    for (Map.Entry<String, Collection<Emit>> entType : name_match_curr.entrySet()) {
-                        for (Emit matchedName : entType.getValue()) {
-                            NamedEntity ne = (NamedEntity) matchedName.getCustomeData();
-                            workingChild.addEntity(entType.getKey(), ne.getName());
+                    for (QTMatch qtMatch : name_match_curr) {
+                        String ne = qtMatch.getCustomData();
+                        workingChild.addEntity(qtMatch.getGroup(), ne);
                             //			logger.info("\t" + entType.getKey() + " | " + ne.getName());
-                        }
                     }
                 }
                 if (name_match_curr.size() == 0 && onlyIncludeUttsWithEntities) continue;

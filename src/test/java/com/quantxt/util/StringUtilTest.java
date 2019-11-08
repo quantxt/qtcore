@@ -1,6 +1,5 @@
 package com.quantxt.util;
 
-import com.quantxt.helper.types.ExtInterval;
 import com.quantxt.helper.types.ExtIntervalSimple;
 import org.junit.Test;
 
@@ -72,7 +71,7 @@ public class StringUtilTest {
     public void findMatch_4() {
         String str = "One positive of these devices is that they aren't cabled to a computer .";
         String [] tokens = new String[]{"positi", "devic" , "comput"};
-        ExtIntervalSimple [] ex = findAllSpans(str, tokens);
+        ExtIntervalSimple[] ex = findAllSpans(str, tokens);
 
         assertNotNull(ex);
         assertEquals(ex[0].getStart(), 4);
