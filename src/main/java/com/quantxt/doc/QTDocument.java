@@ -130,7 +130,9 @@ public abstract class QTDocument {
         } else {
             if (valueType == DATETIME) {
                 helper.getDatetimeValues(rawSent_curr, pre_context, values);
-            } else if (valueType == STRING || valueType == KEYWORD) {
+            } else if (valueType == STRING ) {
+                helper.getPatternValues(rawSent_curr, pre_context, Pattern.compile("(.*)"), new int []{1}, values);
+            } else if (valueType == KEYWORD) {
                 Pattern regex = dictSearch.getDictionary().getPattern();
                 int[] groups = dictSearch.getDictionary().getGroups();
                 helper.getPatternValues(rawSent_curr, pre_context, regex, groups, values);
