@@ -64,8 +64,8 @@ public abstract class QTDocument {
     protected transient QTDocumentHelper helper;
 
     //TODO: all these should be combined into a generic class
-    private Set<String> tags = new HashSet<>();
-    private Map<String, LinkedHashSet<String>> entity;
+    private List<String> tags;
+    private Map<String, List<String>> entity;
     private ArrayList<String> verbs;
     private ArrayList<String> nouns;
     private ArrayList<ExtInterval> values;
@@ -104,9 +104,18 @@ public abstract class QTDocument {
                                  String pre_context)
     {
         QTField.QTFieldType valueType = dictSearch.getDictionary().getValType();
-        if (valueType == null || valueType == NONE) return;
-
         final String rawSent_curr = title;
+        // for non-typed dictionaries
+        if (valueType == null || valueType == NONE){
+            Collection<QTMatch> name_match_curr = dictSearch.search(rawSent_curr);
+            if (name_match_curr.size() == 0) return;
+            for (QTMatch qtMatch : name_match_curr) {
+                String matching_string = qtMatch.getCustomData();
+                String match_group = qtMatch.getGroup();
+                addEntity(match_group, matching_string);
+            }
+            return;
+        }
 
         ArrayList<ExtIntervalSimple> values = new ArrayList<>();
         // get potential values
@@ -182,51 +191,50 @@ public abstract class QTDocument {
 
             for (QTMatch qtMatch : name_match_curr) {
                 String keyGroup = qtMatch.getGroup();
-            //    for (QTMatch matchedName : entType.getValue()) {
-                    String key = qtMatch.getCustomData();
-                    int keyEnd = qtMatch.getEnd();
-                    int end_of_key_in_original_string = start_search + keyEnd;
+                String key = qtMatch.getCustomData();
+                int keyEnd = qtMatch.getEnd();
+                int end_of_key_in_original_string = start_search + keyEnd;
 
-                    // for now we require the key to be before the value
-                    if (keyEnd < 0) {
-                        logger.error("key wrong ---- {} ----- in '{}'", qtMatch.getKeyword(), title);
-                        continue;
-                    }
+                // for now we require the key to be before the value
+                if (keyEnd < 0) {
+                    logger.error("key wrong ---- {} ----- in '{}'", qtMatch.getKeyword(), title);
+                    continue;
+                }
 
-                    String string_to_pad_after_key = rawSent_curr.substring(end_of_key_in_original_string);
-                    Matcher m = padding.matcher(string_to_pad_after_key);
-                    int shift = 0;
-                    if (m.find()) {
-                        shift = m.end();
-                    }
-                    int end_of_key_in_original_string_after_shift = end_of_key_in_original_string + shift;
+                String string_to_pad_after_key = rawSent_curr.substring(end_of_key_in_original_string);
+                Matcher m = padding.matcher(string_to_pad_after_key);
+                int shift = 0;
+                if (m.find()) {
+                    shift = m.end();
+                }
+                int end_of_key_in_original_string_after_shift = end_of_key_in_original_string + shift;
 
-                    if (shift > 0) {// that means we might need to skip some value
-                        // so if there is ccc(2) 3 4 5 and the key is ccc we my need to ignore (2)
-                        ArrayList<ExtIntervalSimple> new_row_values = new ArrayList<>();
-                        for (ExtIntervalSimple rv : rowValues) {
-                            if (rv.getStart() >= end_of_key_in_original_string_after_shift) {
-                                new_row_values.add(rv);
-                            }
+                if (shift > 0) {// that means we might need to skip some value
+                    // so if there is ccc(2) 3 4 5 and the key is ccc we my need to ignore (2)
+                    ArrayList<ExtIntervalSimple> new_row_values = new ArrayList<>();
+                    for (ExtIntervalSimple rv : rowValues) {
+                        if (rv.getStart() >= end_of_key_in_original_string_after_shift) {
+                            new_row_values.add(rv);
                         }
-                        rowValues = new_row_values;
                     }
+                    rowValues = new_row_values;
+                }
 
-                    if (rowValues.size() == 0) continue;
+                if (rowValues.size() == 0) continue;
 
 
-                    // now the first value should be close enough to key
-                    //TODO: this ca be done just be the regex and dist can be removed
-                    if ((rowValues.get(0).getStart() - end_of_key_in_original_string_after_shift) > dictSearch.getDictionary().getSearch_distance()) continue;
+                // now the first value should be close enough to key
+                //TODO: this can be done just be the regex and dist can be removed
+                if ((rowValues.get(0).getStart() - end_of_key_in_original_string_after_shift) > dictSearch.getDictionary().getSearch_distance()) continue;
 
-                    if (this.values == null) this.values = new ArrayList<>();
+                if (this.values == null) this.values = new ArrayList<>();
 
-                    ExtInterval extInterval = new ExtInterval();
-                    extInterval.setKeyGroup(keyGroup);
-                    extInterval.setKey(key);
-                    extInterval.setExtIntervalSimples(rowValues);
-                    this.values.add(extInterval);
-        //        }
+                ExtInterval extInterval = new ExtInterval();
+                extInterval.setKeyGroup(keyGroup);
+                extInterval.setKey(key);
+                extInterval.setExtIntervalSimples(rowValues);
+                this.values.add(extInterval);
+                addEntity(keyGroup, key);
             }
         }
     }
@@ -268,6 +276,28 @@ public abstract class QTDocument {
         }
     }
 
+    public void addNounAndVerbs(){
+        List<String> tokens = helper.tokenize(title);
+        String[] parts = tokens.toArray(new String[tokens.size()]);
+        List<ExtIntervalSimple> nounsAndVerbs = helper.getNounAndVerbPhrases(title, parts);
+        for (ExtIntervalSimple ext : nounsAndVerbs) {
+            switch (ext.getType()) {
+                case VERB:
+                    String verb = title.substring(ext.getStart(), ext.getEnd());
+                    DOCTYPE verbType = helper.getVerbType(verb);
+                    if (verbType != null) {
+                        setDocType(verbType);
+                    }
+                    break;
+                case NOUN:
+                    String noun = title.substring(ext.getStart(), ext.getEnd());
+                    addEntity(NER_TYPE, noun);
+            }
+        }
+    }
+
+    // Re-factor co-referring part
+    @Deprecated
     public ArrayList<QTDocument> extractEntityMentions(DictSearch<QTMatch> dictSearch,
                                                        boolean onlyIncludeUttsWithEntities,
                                                        boolean extractNounAndVebPhrases,
@@ -358,22 +388,25 @@ public abstract class QTDocument {
     }
 
     public void addTag(String tag) {
+        if (tags == null){
+            tags = new ArrayList<>();
+        }
         tags.add(tag);
     }
 
     public void addEntity(String t, String e) {
-        LinkedHashSet<String> ents;
+        List<String> list;
         if (entity == null) {
             entity = new HashMap<>();
-            ents = new LinkedHashSet<>();
+            list = new ArrayList<>();
         } else {
-            ents = entity.get(t);
-            if (ents == null) {
-                ents = new LinkedHashSet<>();
+            list = entity.get(t);
+            if (list == null) {
+                list = new ArrayList<>();
             }
         }
-        ents.add(e);
-        entity.put(t, ents);
+        list.add(e);
+        entity.put(t, list);
     }
 
     public String toString() {
