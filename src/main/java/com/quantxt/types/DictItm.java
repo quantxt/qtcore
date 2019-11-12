@@ -3,12 +3,15 @@ package com.quantxt.types;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 @Getter
 @Setter
-public class DictItm {
+public class DictItm implements Serializable {
+    private static final long serialVersionUID = -1878032088113144067L;
+
     private String key;
     private List<String> value;
 

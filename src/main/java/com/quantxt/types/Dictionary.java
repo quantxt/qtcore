@@ -4,6 +4,7 @@ import com.quantxt.helper.types.QTField;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -16,7 +17,10 @@ import java.util.regex.Pattern;
 
 @Getter
 @Setter
-public  class Dictionary {
+
+public  class Dictionary implements Serializable {
+
+    private static final long serialVersionUID = -5854156830214968792L;
 
     final private static Pattern default_kay_padding = Pattern.compile("^\\s+");
 
