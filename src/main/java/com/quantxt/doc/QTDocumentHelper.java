@@ -5,9 +5,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.quantxt.doc.QTDocument.DOCTYPE;
-import com.quantxt.helper.types.ExtInterval;
 import com.quantxt.helper.types.ExtIntervalSimple;
-import com.quantxt.interval.Interval;
 import com.quantxt.trie.Trie;
 
 public interface QTDocumentHelper {

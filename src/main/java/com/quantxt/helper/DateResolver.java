@@ -332,7 +332,7 @@ public class DateResolver {
                 DateResolver dr = normalizeDateStr(substr, m, e.digits);
                 if (dr == null) continue;
                 int date_start_index = m.start(1);
-                int date_str_end_index = m.end(1) - 1;
+                int date_str_end_index = m.end(1);
                 ExtIntervalSimple ext = new ExtIntervalSimple(date_start_index + offset, date_str_end_index +offset);
                 //make sure the date found is unique:
                 boolean has_overalp = false;
