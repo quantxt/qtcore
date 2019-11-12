@@ -131,7 +131,25 @@ public abstract class QTDocument {
             if (valueType == DATETIME) {
                 helper.getDatetimeValues(rawSent_curr, pre_context, values);
             } else if (valueType == STRING ) {
-                helper.getPatternValues(rawSent_curr, pre_context, Pattern.compile("(.*)"), new int []{1}, values);
+                Collection<QTMatch> name_match_curr = dictSearch.search(title);
+                if (name_match_curr.size() == 0) return;
+                ArrayList<ExtIntervalSimple> rowValues = new ArrayList<>();
+                ExtIntervalSimple extIntervalSimple = new ExtIntervalSimple(0, title.length() - 1);
+                extIntervalSimple.setStringValue(title);
+                extIntervalSimple.setCustomData(title);
+                rowValues.add(extIntervalSimple);
+                for (QTMatch qtMatch : name_match_curr) {
+                    String keyGroup = qtMatch.getGroup();
+                    String key = qtMatch.getCustomData();
+                    ExtInterval extInterval = new ExtInterval();
+                    extInterval.setKeyGroup(keyGroup);
+                    extInterval.setKey(key);
+                    extInterval.setExtIntervalSimples(rowValues);
+                    if (this.values == null) this.values = new ArrayList<>();
+                    this.values.add(extInterval);
+                    addEntity(keyGroup, key);
+                }
+                return;
             } else if (valueType == KEYWORD) {
                 Pattern regex = dictSearch.getDictionary().getPattern();
                 int[] groups = dictSearch.getDictionary().getGroups();
