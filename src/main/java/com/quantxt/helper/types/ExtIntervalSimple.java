@@ -17,7 +17,7 @@ public class ExtIntervalSimple extends Interval {
     private DateTime datetimeValue;
     private String stringValue;
     private Short shortValue;
-    private Object customData;
+    private String customData;
 
     public ExtIntervalSimple(int start, int end) {
         super(start, end);
