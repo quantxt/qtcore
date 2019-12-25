@@ -1,24 +1,24 @@
 package com.quantxt.types;
 
 import com.google.gson.*;
-import org.joda.time.DateTime;
 
 import java.lang.reflect.Type;
+import java.time.LocalDateTime;
 
 /**
  * Created by matin on 4/30/17.
  */
 
-public class DateTimeTypeConverter implements JsonSerializer<DateTime>, JsonDeserializer<DateTime> {
+public class DateTimeTypeConverter implements JsonSerializer<LocalDateTime>, JsonDeserializer<LocalDateTime> {
 
     @Override
-    public JsonElement serialize(DateTime src, Type srcType, JsonSerializationContext context) {
+    public JsonElement serialize(LocalDateTime src, Type srcType, JsonSerializationContext context) {
         return new JsonPrimitive(src.toString());
     }
 
     @Override
-    public DateTime deserialize(JsonElement json, Type type, JsonDeserializationContext context)
+    public LocalDateTime deserialize(JsonElement json, Type type, JsonDeserializationContext context)
             throws JsonParseException {
-        return new DateTime(json.getAsString());
+        return LocalDateTime.parse(json.getAsString());
     }
 }

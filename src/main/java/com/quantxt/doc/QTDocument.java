@@ -2,6 +2,7 @@ package com.quantxt.doc;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -13,7 +14,6 @@ import com.quantxt.interval.Interval;
 import com.quantxt.types.DictSearch;
 import lombok.Getter;
 import lombok.Setter;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +21,6 @@ import com.google.gson.Gson;
 import com.quantxt.helper.types.ExtInterval;
 
 import static com.quantxt.helper.types.QTField.QTFieldType.*;
-import static com.quantxt.types.Entity.NER_TYPE;
 
 @Getter
 @Setter
@@ -30,6 +29,8 @@ public abstract class QTDocument {
     public enum Language {
         ENGLISH, SPANISH, GERMAN, FRENCH, ARABIC, RUSSIAN, FARSI, JAPANESE, PORTUGUESE
     }
+
+    final public static String NER_TYPE = "Entity_NER";
 
     public enum CHUNK {
         LINE, BULLET, SENTENCE, PARAGRAPH, PAGE, NONE
@@ -54,7 +55,7 @@ public abstract class QTDocument {
     protected transient List<String> sentences;
     private DOCTYPE docType;
 
-    private DateTime date;
+    private LocalDateTime date;
     private String link;
     private double score;
     private int position;

@@ -17,14 +17,6 @@ public class StringUtil {
         return value == null || value.replaceAll("\\s*", "").equals("");
     }
 
-    public static String removePrnts(String str) {
-        str = str.replaceAll("\\([^\\)]+\\)", " ");
-        str = str.replaceAll("([\\.])+$", " $1");
-        str = str.replaceAll("\\s+", " ");
-        str = str.replaceAll("[”“]", "\"");
-        return str;
-    }
-
     private static ExtIntervalSimple findSpanHelper(String str,
                                                     int startPos,
                                                     List<String> tokenList)

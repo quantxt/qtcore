@@ -1,12 +1,14 @@
 package com.quantxt.helper.types;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class QTField {
     public enum QTFieldType {SHORT, INT, LONG, FLOAT, DOUBLE, STRING, KEYWORD, BOOL, DATETIME,
         NOUN, VERB, PERCENT, MONEY, NONE}
@@ -14,95 +16,107 @@ public class QTField {
     /*
     Full name of the data field
      */
-    private String fname;
+    protected String fname;
 
     /*
     Short name for the data field
      */
-    private String sname;
+    protected String sname;
 
     /*
     Is the field aggregable?
      */
-    private boolean isFilter;
+    protected boolean isFilter;
 
     /*
     This field processed by a Value; mostly for KEYWORD and STRING fields
      */
-    private boolean hasValue;
+    protected boolean hasValue;
 
     /*
     number of bukcets
      */
 
-    private int numBuckets;
+    protected int numBuckets;
 
     /*
     Sort by name or count
      */
-    private boolean isSortByName;
+    protected boolean isSortByName;
 
     /*
     Type of data field
      */
-    private QTFieldType type = QTFieldType.KEYWORD;
+    protected QTFieldType type = QTFieldType.NONE;
 
     /*
     Extraction path in source
      */
-    private String path;
+    protected String path;
 
     /*
     Translate to English
      */
-    private boolean translate2En;
+    protected boolean translate2En;
 
     /*
     Autodetect the type
      */
-    private boolean autoDetect;
+    protected boolean autoDetect;
 
     /*
     Name of mapping file that should be applied on extractions
      */
-    private String mapping;
+    protected String mapping;
 
     /*
     Depth of extrcation: L1 or L2
      */
-    private String level;
+    protected String level;
 
     /*
     Rules to be applied in extracted data
      */
-    private ArrayList<String []> regexReplace;
+    protected ArrayList<String []> regexReplace;
 
     /*
     Rules to be applied in extracted data
      */
-    private ArrayList<String []> regexSelect;
+    protected ArrayList<String []> regexSelect;
 
     /*
     if not null split the value for field. Field will have an array of values
      */
-    private String splitter;
+    protected String splitter;
 
     /*
     Is this field indexable?
      */
-    private boolean index = true;
+    protected boolean index = true;
 
     /*
     Is this field required
      */
-    private boolean required;
+    protected boolean required;
 
     /*
     Field has an array of nested childern
      */
-    private QTField [] fields;
+    protected QTField [] fields;
 
-    public QTField(){
+    public void setIsFilter(boolean s){
+        isFilter = s;
+    }
 
+    public boolean getIsFilter(){
+        return isFilter;
+    }
+
+    public void setIsSortByName(boolean s){
+        isSortByName = s;
+    }
+
+    public boolean getIsSortByName(){
+        return isSortByName;
     }
 }
