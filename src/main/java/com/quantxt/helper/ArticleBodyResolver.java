@@ -421,7 +421,7 @@ public class ArticleBodyResolver {
                     }
                     qtnode.length += length;
                 } catch (Exception exp){
-                    logger.error("Jsoup parsing error " + exp.getMessage());
+                    logger.debug("Jsoup parsing error " + exp.getMessage());
                 }
 
             }

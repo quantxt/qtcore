@@ -1,13 +1,13 @@
 package com.quantxt.helper.types;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class URLPattern {
 
     final private static Logger logger = LoggerFactory.getLogger(URLPattern.class);
@@ -25,7 +26,7 @@ public class URLPattern {
     final private static Pattern NDATE = Pattern.compile("__MIN__(-?[1-9]\\d*|0)_(-?[1-9]\\d*|0)_(-?[1-9]\\d*|0)");
     final private static Pattern COUNTER = Pattern.compile("__COUNT_(\\d+)_(\\d+)_(\\d+)__");
     final private static Pattern QUERY   = Pattern.compile("__QUERY__");
-    final private static DateTimeFormatter dtf = DateTimeFormat.forPattern("MM/dd/yyyy");
+    final private static DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
     private String urlPattern = "href=\"(http[^\"]+)\"";
     private String name;
@@ -50,8 +51,12 @@ public class URLPattern {
 
     private Map<String, String> headers;
 
-    public URLPattern(){
+    public boolean getIsTs(){
+        return isTs;
+    }
 
+    public void setIsTs(boolean b){
+        isTs = b;
     }
 
     public URLPattern(URLPattern up) {
@@ -107,17 +112,17 @@ public class URLPattern {
     }
 
     public void addQueryAndPaging(Collection<String> all_search_terms,
-                                  DateTime fromDate) {
+                                  LocalDateTime fromDate) {
         ArrayList<String> processed = new ArrayList<>();
 
-        DateTime today = new DateTime();
+        LocalDateTime today = LocalDateTime.now();
         //check for date
         for (String searchUrl : links) {
             if (searchUrl.contains("__DATE_")) {
                 Matcher date_match = DATE.matcher(searchUrl);
                 while (date_match.find()) {
-                    DateTime finaldate = today.plusDays(Integer.parseInt(date_match.group(1)));
-                    String date_str = dtf.print(finaldate);
+                    LocalDateTime finaldate = today.plusDays(Integer.parseInt(date_match.group(1)));
+                    String date_str = dtf.format(finaldate);
                     searchUrl = searchUrl.replace(date_match.group(0), date_str);
                 }
                 processed.add(searchUrl);
@@ -129,12 +134,12 @@ public class URLPattern {
                     int offset = Integer.parseInt(date_match.group(2));
 
                     for (int i = start; i > end; i += offset) {
-                        DateTime start_d = today.plusDays(i + offset);
-                        DateTime end_d = today.plusDays(i - 1);
+                        LocalDateTime start_d = today.plusDays(i + offset);
+                        LocalDateTime end_d = today.plusDays(i - 1);
                         // make sure this is after the anticipated fromDate
                         if (fromDate != null && end_d.isBefore(fromDate)) continue;
-                        from = dtf.print(start_d);
-                        to = dtf.print(end_d);
+                        from = dtf.format(start_d);
+                        to = dtf.format(end_d);
                         String srchCopy = searchUrl.replace(date_match.group(0), from);
                         srchCopy = srchCopy.replace("__MAX__", to);
                         processed.add(srchCopy);
