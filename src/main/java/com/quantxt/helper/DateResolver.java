@@ -94,6 +94,11 @@ public class DateResolver {
         return date;
     }
 
+    private static String encodeText(String text){
+        text = text.replace("'", "\\'");
+        return text;
+    }
+
     private static LocalDateTime resolveDateHelper(Document doc) {
         LocalDateTime date;
         // get the earliest date when pasre the attributes
@@ -103,7 +108,7 @@ public class DateResolver {
         List<Element> beforeTitle = new ArrayList<>();
         List<Element> elements = doc.body().select("*");
         if (title != null && !title.isEmpty()) {
-            Elements titleMatching = doc.body().select("*:containsOwn(" + title + ")");
+            Elements titleMatching = doc.body().select("*:containsOwn(" + encodeText(title) + ")");
             if (titleMatching != null) {
                 for (Element matchingElem : titleMatching) {
                     int matchedLevel = ArticleBodyResolver.getLevel(matchingElem);
@@ -291,18 +296,8 @@ public class DateResolver {
     //            log.debug("Not a valid pattern for " + date_corrected_str);
             }
         }
+
         log.debug(date_corrected_str + " doesn't have a time. Trying Date-only parsing.");
-
-
-        try {
-            TemporalAccessor temporalAccessor = date_formatter.parseBest(date_corrected_str, LocalDateTime::from, LocalDate::from);
-            LocalDateTime date_time = ((LocalDate) temporalAccessor).atStartOfDay();
-            return new DateResolver(date_time, date_corrected_str.length(), false);
-
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-
         return new DateResolver(justDate, jsutDateStr.length(), false);
     }
 
