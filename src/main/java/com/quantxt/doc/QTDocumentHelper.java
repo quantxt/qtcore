@@ -6,7 +6,6 @@ import java.util.regex.Pattern;
 
 import com.quantxt.doc.QTDocument.DOCTYPE;
 import com.quantxt.helper.types.ExtIntervalSimple;
-import com.quantxt.trie.Trie;
 
 public interface QTDocumentHelper {
 
@@ -23,8 +22,6 @@ public interface QTDocumentHelper {
     String[] getPosTags(String[] text);
 
     List<ExtIntervalSimple> getNounAndVerbPhrases(String orig, String[] tokens);
-
-    Trie getVerbTree();
 
     boolean isSentence(String str, List<String> tokens);
 

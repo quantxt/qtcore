@@ -3,7 +3,8 @@ package com.quantxt.helper.types;
 import com.quantxt.interval.Interval;
 import lombok.Getter;
 import lombok.Setter;
-import org.joda.time.DateTime;
+
+import java.time.LocalDateTime;
 
 
 @Getter
@@ -13,11 +14,11 @@ public class ExtIntervalSimple extends Interval {
     private QTField.QTFieldType type;
     private Double doubleValue;
     private Float floatValue;
-    private Integer intValue;
-    private DateTime datetimeValue;
+    private Long intValue;
+    private LocalDateTime datetimeValue;
     private String stringValue;
     private Short shortValue;
-    private Object customData;
+    private String customData;
 
     public ExtIntervalSimple(int start, int end) {
         super(start, end);

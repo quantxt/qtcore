@@ -1,5 +1,6 @@
 package com.quantxt.helper;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -19,9 +20,8 @@ import static org.junit.Assert.assertTrue;
  * Created by matin on 3/29/17.
  */
 
+@Slf4j
 public class ArticleBodyResolverTest {
-
-    private static Logger logger = LoggerFactory.getLogger(ArticleBodyResolverTest.class);
 
     @Test
     public void nytimes_1() {
@@ -341,7 +341,7 @@ public class ArticleBodyResolverTest {
 
             return abr.getExtractions();
         } catch (Exception e){
-            logger.error(e.getMessage());
+            log.error(e.getMessage());
         }
         return null;
     }
@@ -354,7 +354,7 @@ public class ArticleBodyResolverTest {
             abr.analyze3();
             return abr;
         } catch (Exception e){
-            logger.error(e.getMessage());
+            log.error(e.getMessage());
         }
         return null;
     }

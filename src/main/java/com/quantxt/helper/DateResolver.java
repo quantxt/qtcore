@@ -4,19 +4,16 @@ import com.quantxt.helper.types.DateStrHelper;
 import com.quantxt.helper.types.ExtIntervalSimple;
 import com.quantxt.helper.types.QTField;
 import com.quantxt.types.MapSort;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.DateTimeFormatterBuilder;
-import org.joda.time.format.DateTimeParser;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,19 +21,21 @@ import java.util.regex.Pattern;
 /**
  * Created by matin on 3/22/17.
  */
+
+@Slf4j
 public class DateResolver {
 
-    private static Logger logger = LoggerFactory.getLogger(DateResolver.class);
+    final private static String EnglishShortMonths = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)";
     private final static List<DateStrHelper> DATE_PATTERN_MAP = new ArrayList<>();
     final private static String DATE_SEPARATOR_STR = "(?:[\\@\\.\\s,\\-\\/\\(\\)\\\\\\|\\&;]+|$)";
-    final private static String MONTH_NAME_STR   = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[a-zA-Z]*)";
+    final private static String MONTH_NAME_STR   = EnglishShortMonths +"(?:[a-zA-Z]*)";
     final private static String DAY_STR = "([0123][0-9]|[1-9])";
     final private static String MONTH_STR = "([01][0-9]|[1-9])";
     final private static String YEAR_STR = "([12]\\d{3})";   // 4 digit year
     final private static String YEAR_SHORT = "([01]\\d|[6789]\\d)";  // 2 digit year
 
 
-    final private static DateTimeFormatter MonthFormat = DateTimeFormat.forPattern("MMM");
+    final private static Pattern MonthFormat = Pattern.compile(EnglishShortMonths, Pattern.CASE_INSENSITIVE);
 
     static {
         DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("("+MONTH_NAME_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_STR + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
@@ -47,43 +46,35 @@ public class DateResolver {
         DATE_PATTERN_MAP.add(new DateStrHelper(Pattern.compile("(?:^|[^\\d]+)("+MONTH_STR + DATE_SEPARATOR_STR + DAY_STR + DATE_SEPARATOR_STR + YEAR_SHORT + ")" + DATE_SEPARATOR_STR, Pattern.CASE_INSENSITIVE), new int[]{4, 2, 3}));
     }
 
-    private static DateTimeParser[] DATE_PARSER = {
-            DateTimeFormat.forPattern("yyyy MMM dd").getParser(),
-            DateTimeFormat.forPattern("yyyy MM dd").getParser()/*,
-            DateTimeFormat.forPattern("yyyy dd MM").getParser()*/
+    private static DateTimeFormatter [] DATE_FORMATTER = new DateTimeFormatter []{
+            DateTimeFormatter.ofPattern("yyyy MMM d"),
+            DateTimeFormatter.ofPattern("yyyy M d")
     };
 
-    private static DateTimeFormatter DATE_FORMATTER = new DateTimeFormatterBuilder().append( null, DATE_PARSER ).toFormatter();
-    private static DateTimeFormatter DATE_STR_FORMATTER = DateTimeFormat.forPattern( "yyyy-MM-dd");
+    private static DateTimeFormatter DATE_STR_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    private static DateTimeParser[] date_and_time_parsers = {
-            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss").getParser(),
-            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSSZ").getParser(),
-            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssZ").getParser(),
-            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss z").getParser(),
-            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ssz").getParser(),
-            DateTimeFormat.forPattern("yyyy-MM-dd hh:mm a z").getParser(),
-            DateTimeFormat.forPattern("yyyy-MM-dd hh:mm a").getParser(),
-
-            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm").getParser(),
-            DateTimeFormat.forPattern("yyyy-MM-dd HH:mm z").getParser(),
-            DateTimeFormat.forPattern("yyyy-MM-dd HH:mmZ").getParser(),
+    private static DateTimeFormatter [] date_time_formatter = new DateTimeFormatter[]{
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss[X]"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS'Z'"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSSS'Z'"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss'Z'"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ssz"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm X z"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm a[ z]"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm[X]"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm'Z'")
     };
 
-    private static DateTimeParser[] date_parsers = {
-            DateTimeFormat.forPattern( "yyyy-MM-dd").getParser()
-    };
+    private static DateTimeFormatter date_formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    private static DateTimeFormatter date_time_formatter = new DateTimeFormatterBuilder().append( null, date_and_time_parsers ).toFormatter();
-    private static DateTimeFormatter date_formatter = new DateTimeFormatterBuilder().append( null, date_parsers ).toFormatter();
-
-
-    private DateTime date;
+    private LocalDateTime date;
     private int length;
     private int textLength;
     private int pos;
 
-    private DateResolver(DateTime dt, int length, boolean ht){
+    private DateResolver(LocalDateTime dt, int length, boolean ht){
         date = dt;
         this.length = length;
     }
@@ -95,16 +86,21 @@ public class DateResolver {
         return ttl;
     }
 
-    public static DateTime resolveDate(Document doc) {
-        DateTime date = resolveDateHelper(doc);
-        if (date != null){
-            date = date.withZone(DateTimeZone.UTC);
-        }
+    public static LocalDateTime resolveDate(Document doc) {
+        LocalDateTime date = resolveDateHelper(doc);
+    //    if (date != null){
+    //        date = date.(ZoneOffset.UTC);
+    //    }
         return date;
     }
 
-    private static DateTime resolveDateHelper(Document doc) {
-        DateTime date;
+    private static String encodeText(String text){
+        text = text.replace("'", "\\'");
+        return text;
+    }
+
+    private static LocalDateTime resolveDateHelper(Document doc) {
+        LocalDateTime date;
         // get the earliest date when pasre the attributes
         // but after the title!
         String title = cleanTitle(doc.title());
@@ -112,7 +108,7 @@ public class DateResolver {
         List<Element> beforeTitle = new ArrayList<>();
         List<Element> elements = doc.body().select("*");
         if (title != null && !title.isEmpty()) {
-            Elements titleMatching = doc.body().select("*:containsOwn(" + title + ")");
+            Elements titleMatching = doc.body().select("*:containsOwn(" + encodeText(title) + ")");
             if (titleMatching != null) {
                 for (Element matchingElem : titleMatching) {
                     int matchedLevel = ArticleBodyResolver.getLevel(matchingElem);
@@ -194,7 +190,7 @@ public class DateResolver {
             date = findDate(beforeTitle);
         }
         if (date == null){
-            logger.debug("Date was not found");
+            log.debug("Date was not found");
         }
         return date;
     }
@@ -203,7 +199,7 @@ public class DateResolver {
         date = findDate(date_str);
     }
 
-    public static DateTime resolveDateStr(String date_str) {
+    public static LocalDateTime resolveDateStr(String date_str) {
         return findDate(date_str);
     }
 
@@ -211,7 +207,7 @@ public class DateResolver {
                                       Matcher m,
                                       int [] vals)
     {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder jsutDateStr = new StringBuilder();
         // check the day and month numbers are valid
         //validate month
         String month = m.group(vals[1]);
@@ -229,31 +225,42 @@ public class DateResolver {
             if (Integer.parseInt(month) > 12) return null;
             if (Integer.parseInt(m.group(vals[2])) > 31) return null;
         } catch (NumberFormatException ne){
-            try {
-                MonthFormat.parseDateTime(month);
-            } catch (Exception e){
-                logger.error("Not a valid month {}", month);
-                return null;
-            }
+            Matcher matcher = MonthFormat.matcher(month);
+            if (!matcher.find()) return null;
         }
+
         if (year_int == 0) return null;
 
-        sb.append(year_int)
+        jsutDateStr.append(year_int)
                 .append(" ")
                 .append(m.group(vals[1]))
                 .append(" ")
                 .append(m.group(vals[2]));
-        DateTime justDate = null;
-        try {
-            justDate = DATE_FORMATTER.parseDateTime(sb.toString());
-        } catch (Exception e){
-            logger.error(e.getMessage());
+        LocalDateTime justDate = null;
+
+        for (DateTimeFormatter dtf : DATE_FORMATTER) {
+            try {
+                TemporalAccessor temporalAccessor = dtf.parseBest(jsutDateStr.toString(), LocalDateTime::from, LocalDate::from);
+                if (temporalAccessor instanceof LocalDateTime) {
+                    justDate = (LocalDateTime) temporalAccessor;
+                } else {
+                    justDate = ((LocalDate) temporalAccessor).atStartOfDay();
+                }
+                break;
+            } catch (Exception e) {
+            //    log.error("Date was not recognized '{}'", sb.toString());
+            }
         }
-        if (justDate == null) return null;
+
+        if (justDate == null) {
+            log.error("Date was not recognized '{}'", jsutDateStr.toString());
+            return null;
+        }
 
         String matched = m.group();
         int potentialTimeInString = date_string.indexOf(matched) + matched.length();
-        String date_corrected_str = DATE_STR_FORMATTER.print(justDate)+ " " + date_string.substring(potentialTimeInString);
+        String date_corrected_str = DATE_STR_FORMATTER.format(justDate)+ " " + date_string.substring(potentialTimeInString);
+
         //     String date_corrected_str = date_string.replaceAll("^.*?" + m.group(), DATE_STR_FORMATTER.print(justDate)+ " ");
    //     String date_corrected_str2 = m.replaceAll(DATE_STR_FORMATTER.print(justDate));
 
@@ -266,7 +273,9 @@ public class DateResolver {
         date_corrected_str = date_corrected_str.replaceAll("\\s+at\\s+" , " ");
         date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s+\\-" , "$1\\-");
         date_corrected_str = date_corrected_str.replace("CT" , "CST");
-        date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s*(am|pm|AM|PM)\\s+(UTC|EST|PST|CST|MST)?.*$", "$1 $2 $3");
+        date_corrected_str = date_corrected_str.replace("am" , "AM");
+        date_corrected_str = date_corrected_str.replace("pm" , "PM");
+        date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s*(AM|PM)\\s+(UTC|EST|PST|CST|MST)?.*$", "$1 $2 $3");
         date_corrected_str = date_corrected_str.replaceAll("(\\d+)\\s+(UTC|EST|PST|CST|MST).*$", "$1 $2");
 
         // this is ba rule from here : http://giftedviz.com/2017/05/17/bank-of-england-holds-rates-in-7-1-vote/
@@ -274,31 +283,29 @@ public class DateResolver {
         date_corrected_str = date_corrected_str.replaceAll("\\|\\s+.*$", "");
         date_corrected_str = date_corrected_str.trim();
 
+
         // now let's remove whatever if beyonf am/pm or timezone or hours
 
 
-        try {
-            DateTime date_time = date_time_formatter.parseDateTime(date_corrected_str);
-            return new DateResolver(date_time, date_corrected_str.length(), true);
-        } catch (Exception exp) {
+        for (DateTimeFormatter dtf : date_time_formatter){
             try {
-                DateTime date_time = date_formatter.parseDateTime(date_corrected_str);
-                // if we don't find the time zone set it to GMT
-                date_time = date_time.withZoneRetainFields(DateTimeZone.UTC);
-                return new DateResolver(date_time, date_corrected_str.length(), false);
-            } catch (Exception e){
-                logger.debug("Time was not parsed returning the date {} {}", date_corrected_str , justDate);
+                TemporalAccessor temporalAccessor = dtf.parseBest(date_corrected_str, LocalDateTime::from, LocalDate::from);
+                return new DateResolver((LocalDateTime)temporalAccessor
+                        , date_corrected_str.length(), true);
+            } catch (DateTimeParseException dateTimeParseException){
+    //            log.debug("Not a valid pattern for " + date_corrected_str);
             }
-
         }
-        return new DateResolver(justDate, date_corrected_str.length(), false);
+
+        log.debug(date_corrected_str + " doesn't have a time. Trying Date-only parsing.");
+        return new DateResolver(justDate, jsutDateStr.length(), false);
     }
 
-    private  static DateTime findDate(String date_string){
+    private  static LocalDateTime findDate(String date_string){
         if (date_string == null) return null;
         date_string = date_string.replace("\u00a0"," ");
         if (date_string.length() > 1000) {
-            logger.error("String is too long > 1000");
+            log.error("String is too long > 1000");
             return null;
         }
     //    if (date_string.length() > 400 || date_string.split("\\s+").length > 20) return null;
@@ -379,20 +386,20 @@ public class DateResolver {
         return dates;
     }
 
-    private static DateTime getBestMatch(List<DateResolver> allDates){
-        Map<DateTime, Double> scores = new HashMap<>();
+    private static LocalDateTime getBestMatch(List<DateResolver> allDates){
+        Map<LocalDateTime, Double> scores = new HashMap<>();
         for (DateResolver dr : allDates){
    //         double score = (double) dr.length / (double) dr.textLength
    //                 *(double) 1 / dr.pos;
             scores.put(dr.date, (double) dr.pos);
         }
-        Map<DateTime, Double> sorted = MapSort.sortByValue(scores);
-        Map.Entry<DateTime, Double> entry = sorted.entrySet().iterator().next();
+        Map<LocalDateTime, Double> sorted = MapSort.sortByValue(scores);
+        Map.Entry<LocalDateTime, Double> entry = sorted.entrySet().iterator().next();
 
         return entry.getKey();
     }
 
-    private static DateTime findDate(List<Element> elements){
+    private static LocalDateTime findDate(List<Element> elements){
         List<DateResolver> allDates = new ArrayList<>();
         for (int i=0; i <elements.size(); i++) {
             Element elem = elements.get(i);
@@ -420,15 +427,15 @@ public class DateResolver {
     public static void main(String[] args) throws Exception {
    //     String txt  = "FW: Interprint Inc; Morten Enterprises Inc - Wind Submission; Eff 7/15/2018";
         String txt = "InceptionPortfolio Benchmark (Annualized) Asset Class Composition (Net market value, as of 10/31/18) Fund Performance External: Local: Sovereign 68% Sovereign 2% The Fund returned -2.67% (net I-shares) in October, underperforming the Quasi Sovereign 10% Quasi Sovereign 0% benchmark by 51 bps.";
-        DateTime dt = DateResolver.resolveDateStr(txt);
+        LocalDateTime dt = DateResolver.resolveDateStr(txt);
         ArrayList<ExtIntervalSimple> vals = DateResolver.resolveDate(txt);
 
     //    Document doc = Jsoup.connect("https://www.sec.gov/Archives/edgar/data/34088/000003408817000041/xom10q2q2017.htm").get();
     //    dt = DateResolver.resolveDate(doc);
         if (dt != null) {
-            logger.info(dt.toString());
+            log.info(dt.toString());
         } else {
-            logger.info("Date was not found");
+            log.info("Date was not found");
         }
     }
 }

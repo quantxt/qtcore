@@ -1,26 +1,25 @@
 package com.quantxt.helper.types;
 
+import com.quantxt.interval.Interval;
 import lombok.Getter;
 import lombok.Setter;
 
 
 @Getter
 @Setter
-public class QTMatch {
+public class QTMatch extends Interval {
     private String group;
     private String keyword;
     private String customData;
-    private int start;
-    private int end;
     private float score;
 
-    public QTMatch(){
+    public QTMatch(int start, int end) {
+        super(start, end);
 
     }
 
     public QTMatch(int s, int e, String k){
-        this.start = s;
-        this.end = e;
+        super(s, e);
         this.keyword = k;
     }
 }

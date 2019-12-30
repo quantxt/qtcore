@@ -2,6 +2,7 @@ package com.quantxt.doc;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -9,26 +10,26 @@ import java.util.regex.Pattern;
 import com.quantxt.helper.types.ExtIntervalSimple;
 import com.quantxt.helper.types.QTField;
 import com.quantxt.helper.types.QTMatch;
+import com.quantxt.interval.Interval;
 import com.quantxt.types.DictSearch;
 import lombok.Getter;
 import lombok.Setter;
-import org.joda.time.DateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
-import com.google.gson.Gson;
 import com.quantxt.helper.types.ExtInterval;
 
 import static com.quantxt.helper.types.QTField.QTFieldType.*;
-import static com.quantxt.types.Entity.NER_TYPE;
 
 @Getter
 @Setter
+@Slf4j
 public abstract class QTDocument {
 
     public enum Language {
         ENGLISH, SPANISH, GERMAN, FRENCH, ARABIC, RUSSIAN, FARSI, JAPANESE, PORTUGUESE
     }
+
+    final public static String NER_TYPE = "Entity_NER";
 
     public enum CHUNK {
         LINE, BULLET, SENTENCE, PARAGRAPH, PAGE, NONE
@@ -37,15 +38,11 @@ public abstract class QTDocument {
     final private static int MAX_Key_Length = 150;
 
     final private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");//
-    final private static Pattern KEY_Thrillings = Pattern.compile("^[\\s\"'\\(\\)\\-\\:;%]+$");
 
     public enum DOCTYPE {
         Headline, Action, Statement, Aux, Speculation,
         Legal, Acquisition, Production, Partnership, Employment, Development
     }
-
-    private static Gson gson = new Gson();
-    private static Logger logger = LoggerFactory.getLogger(QTDocument.class);
 
     protected String title;
     protected String englishTitle;
@@ -54,7 +51,7 @@ public abstract class QTDocument {
     protected transient List<String> sentences;
     private DOCTYPE docType;
 
-    private DateTime date;
+    private LocalDateTime date;
     private String link;
     private double score;
     private int position;
@@ -88,27 +85,16 @@ public abstract class QTDocument {
 
     public abstract boolean isStatement(String s);
 
-    private int getNextValidIndex(final Pattern pattern,
-                                  String str) {
-        String lookupString = str.replaceAll("(\\p{Sc})", "");
-        if (lookupString.length() == 0) return 0;
-        Matcher m = pattern.matcher(lookupString);
-        if (m.find()) {
-            //shift keyend to end of the pad
-            return m.end();
-        }
-        return 0;
-    }
-
     public void extractKeyValues(DictSearch<QTMatch> dictSearch,
                                  String pre_context)
     {
         QTField.QTFieldType valueType = dictSearch.getDictionary().getValType();
         final String rawSent_curr = title;
+        Collection<QTMatch> name_match_curr = dictSearch.search(title);
+        if (name_match_curr.size() == 0) return;
+
         // for non-typed dictionaries
         if (valueType == null || valueType == NONE){
-            Collection<QTMatch> name_match_curr = dictSearch.search(rawSent_curr);
-            if (name_match_curr.size() == 0) return;
             for (QTMatch qtMatch : name_match_curr) {
                 String matching_string = qtMatch.getCustomData();
                 String match_group = qtMatch.getGroup();
@@ -131,8 +117,6 @@ public abstract class QTDocument {
             if (valueType == DATETIME) {
                 helper.getDatetimeValues(rawSent_curr, pre_context, values);
             } else if (valueType == STRING ) {
-                Collection<QTMatch> name_match_curr = dictSearch.search(title);
-                if (name_match_curr.size() == 0) return;
                 ArrayList<ExtIntervalSimple> rowValues = new ArrayList<>();
                 ExtIntervalSimple extIntervalSimple = new ExtIntervalSimple(0, title.length() - 1);
                 extIntervalSimple.setStringValue(title);
@@ -168,94 +152,49 @@ public abstract class QTDocument {
 
         if (values.size() == 0) return;
 
-        // sort based on first index
-        values.sort((ExtIntervalSimple s1, ExtIntervalSimple s2)->s1.getStart()-s2.getStart());
+        ArrayList<Interval> all_key_values = new ArrayList<>();
+        all_key_values.addAll(values);
+        all_key_values.addAll(name_match_curr);
 
-        Pattern padding = dictSearch.getDictionary().getKeyPadding();
-        for (int i = 0; i < values.size(); i++) {
-            ExtIntervalSimple intv = values.get(i);
-            final int valStart = intv.getStart();
+        all_key_values.sort((Interval s1, Interval s2)->s1.getStart()-s2.getStart());
 
-            // find all row values
+        Pattern padding_between_values = dictSearch.getDictionary().getSkip_between_values();
+        Pattern padding_between_key_value = dictSearch.getDictionary().getSkip_between_key_and_value();
+
+        int total_intervals = all_key_values.size();
+
+        for (int i = 0; i < total_intervals-1; i++) {
+            Interval interval_1 = all_key_values.get(i);
+            if (!(interval_1 instanceof QTMatch)) continue;
+            QTMatch qtKeyMatch = (QTMatch) interval_1;
             ArrayList<ExtIntervalSimple> rowValues = new ArrayList<>();
-            rowValues.add(intv);
-            for (int j = i + 1; j < values.size(); j++) {
-                int lookupStart = values.get(j - 1).getEnd();  // end of the last index we scanned
-                int lookupEnd = values.get(j).getStart();
-                int shift = getNextValidIndex(KEY_Thrillings, rawSent_curr.substring(lookupStart, lookupEnd));
-                if (shift > 0) {
-                    // if we aded more than one value then increase the value counter
-                    i++;
-                    if (i < values.size()) {
-                        rowValues.add(values.get(i));
-                    }
-                } else {
-                    break;
-                }
+
+            for (int j=i+1; j<total_intervals; j++) {
+                Interval interval_2 = all_key_values.get(j);
+                if (!(interval_2 instanceof ExtIntervalSimple)) break;
+
+                ExtIntervalSimple extIntervalSimple_current = (ExtIntervalSimple) interval_2;
+
+                String gap_between_key_and_value = rawSent_curr.substring(interval_1.getEnd(), interval_2.getStart());
+                Pattern pattern_to_run_on_gap = rowValues.size() == 0 ? padding_between_key_value
+                        : padding_between_values;
+                Matcher k = pattern_to_run_on_gap.matcher(gap_between_key_and_value);
+                if (!k.find()) continue;
+                rowValues.add(extIntervalSimple_current);
+                interval_1 = interval_2;
             }
 
-            int start_search = valStart - MAX_Key_Length;
-            if (start_search < 0) {
-                start_search = 0;
-            }
+            if (rowValues.size() == 0) continue;
 
-            int end_search = valStart + dictSearch.getDictionary().getSearch_distance();
-            if (end_search > rawSent_curr.length()) {
-                end_search = rawSent_curr.length();
-            }
-
-            // find potential keys
-            String str_2_search = rawSent_curr.substring(start_search, end_search);
-            Collection<QTMatch> name_match_curr = dictSearch.search(str_2_search);
-            if (name_match_curr.size() == 0) continue;
-
-            for (QTMatch qtMatch : name_match_curr) {
-                String keyGroup = qtMatch.getGroup();
-                String key = qtMatch.getCustomData();
-                int keyEnd = qtMatch.getEnd();
-                int end_of_key_in_original_string = start_search + keyEnd;
-
-                // for now we require the key to be before the value
-                if (keyEnd < 0) {
-                    logger.error("key wrong ---- {} ----- in '{}'", qtMatch.getKeyword(), title);
-                    continue;
-                }
-
-                String string_to_pad_after_key = rawSent_curr.substring(end_of_key_in_original_string);
-                Matcher m = padding.matcher(string_to_pad_after_key);
-                int shift = 0;
-                if (m.find()) {
-                    shift = m.end();
-                }
-                int end_of_key_in_original_string_after_shift = end_of_key_in_original_string + shift;
-
-                if (shift > 0) {// that means we might need to skip some value
-                    // so if there is ccc(2) 3 4 5 and the key is ccc we my need to ignore (2)
-                    ArrayList<ExtIntervalSimple> new_row_values = new ArrayList<>();
-                    for (ExtIntervalSimple rv : rowValues) {
-                        if (rv.getStart() >= end_of_key_in_original_string_after_shift) {
-                            new_row_values.add(rv);
-                        }
-                    }
-                    rowValues = new_row_values;
-                }
-
-                if (rowValues.size() == 0) continue;
+            if (this.values == null) this.values = new ArrayList<>();
 
 
-                // now the first value should be close enough to key
-                //TODO: this can be done just be the regex and dist can be removed
-                if ((rowValues.get(0).getStart() - end_of_key_in_original_string_after_shift) > dictSearch.getDictionary().getSearch_distance()) continue;
-
-                if (this.values == null) this.values = new ArrayList<>();
-
-                ExtInterval extInterval = new ExtInterval();
-                extInterval.setKeyGroup(keyGroup);
-                extInterval.setKey(key);
-                extInterval.setExtIntervalSimples(rowValues);
-                this.values.add(extInterval);
-                addEntity(keyGroup, key);
-            }
+            ExtInterval extInterval = new ExtInterval();
+            extInterval.setKeyGroup(qtKeyMatch.getGroup());
+            extInterval.setKey(qtKeyMatch.getCustomData());
+            extInterval.setExtIntervalSimples(rowValues);
+            this.values.add(extInterval);
+            addEntity(qtKeyMatch.getGroup(), qtKeyMatch.getCustomData());
         }
     }
 
@@ -428,9 +367,4 @@ public abstract class QTDocument {
         list.add(e);
         entity.put(t, list);
     }
-
-    public String toString() {
-        return gson.toJson(this);
-    }
-
 }
