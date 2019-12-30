@@ -1,8 +1,7 @@
 package com.quantxt.helper;
 
 import com.quantxt.types.MapSort;
-import org.jsoup.Connection;
-import org.jsoup.Jsoup;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
@@ -10,23 +9,13 @@ import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import org.jsoup.select.NodeTraversor;
 import org.jsoup.select.NodeVisitor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.*;
 
 /**
  * Created by matin on 3/26/17.
  */
+@Slf4j
 public class ArticleBodyResolver {
-
-    private static Logger logger = LoggerFactory.getLogger(ArticleBodyResolver.class);
 
     public static Set<String> NO_TEXT_TAGS = new HashSet<>(Arrays.asList("h1", "caption", "cite", "h2", "audio", "script", "nav", "iframe", "embed", "footer", "form", "figcaption", "img", "video", "figure"));
     public static String PUNCS = "。.!?؟¿¡";
@@ -135,10 +124,6 @@ public class ArticleBodyResolver {
                 pText = parent.text().toLowerCase().replaceAll("[^a-z\\s]+", "").trim();
             }
 
-//            if (!e.cssSelector().equals(parent.cssSelector())){
-//                logger.info(e.cssSelector() + " --> " + parent.cssSelector());
-//            }
-
             Elements imgs = child.select("img,figure,video");
             double numImg = (double) imgs.size();
             double r = numImg * 10 / (double) child.text().split("\\s+").length;
@@ -166,7 +151,7 @@ public class ArticleBodyResolver {
             Element elem = e.getKey();
             int level = elem.cssSelector().split(" > ").length;
             //elem.cssSelector()
-            logger.info("(" + level + ")" + "\t" + " --> " + elem.text().replaceAll("\\s+", " "));
+            log.info ("(" + level + ")" + "\t" + " --> " + elem.text().replaceAll("\\s+", " "));
             double word_ratio = (double) e.getValue() / max;
             if (word_ratio > .7) {
                 //               logger.info(e.getKey().id() + " | " + elem.className() + " | " + e.getValue() + " " + word_ratio);
@@ -421,7 +406,7 @@ public class ArticleBodyResolver {
                     }
                     qtnode.length += length;
                 } catch (Exception exp){
-                    logger.debug("Jsoup parsing error " + exp.getMessage());
+                    log.debug("Jsoup parsing error " + exp.getMessage());
                 }
 
             }
@@ -521,82 +506,4 @@ public class ArticleBodyResolver {
     public List<Element> getExtractions() {
         return extractions;
     }
-
-    public static void main(String[] args) throws Exception {
-
-        String[] urls = {
-                "https://www.washingtonpost.com/business/2019/05/22/teslas-automatic-lane-changing-feature-is-far-less-competent-than-human-driver-consumer-reports-says/"
-        //        "https://www.duolingo.com/comment/13955228/A-guide-to-the-Russian-word-order"
-          //      "https://www.jpost.com/Blogs/A-Mid-East-Journal/The-trouble-with-Iran-558371"
-           //     "http://dailycaller.com/2018/05/27/iran-deal-architect-chants-death-to-america-john-kerry/"
-             //   "https://www.nytimes.com/2017/04/11/us/politics/sean-spicer-hitler-gas-holocaust-center.html"
-            //               "http://www.dailymail.co.uk/news/article-4356348/Carlos-Jackal-awaiting-verdict-Paris-court.html"
-           //          "https://www.cnet.com/news/heres-how-much-the-galaxy-s8-and-s8-plus-will-cost-you/"
-          //      "https://www.cnet.com/news/heres-how-much-the-galaxy-s8-and-s8-plus-will-cost-you/"
-         //       "https://www.nytimes.com/2017/04/11/us/alabama-governor-robert-bentley-sex-scandal.html?hp&action=click&pgtype=Homepage&clickSource=story-heading&module=second-column-region&region=top-news&WT.nav=top-news"
-            //    "https://www.washingtonpost.com/news/politics/wp/2017/03/29/the-nunes-white-house-question-assessed-minute-by-minute/?utm_term=.e173fe569434"
-         //   "https://www.reuters.com/article/us-tesla-stocks-idUSKBN17F2FF"
-                //  "https://www.nytimes.com/2017/03/29/world/asia/china-taiwan-activist-lee-ming-cheh.html"
-             //    "http://www.cnn.com/2017/03/29/politics/senate-filibuster-neil-gorsuch/index.html"
-       //     "https://www.msn.com/en-us/news/world/guineas-new-pm-unveils-government/ar-AAxSLyG"
-        //        "http://www.tampabay.com/amid-rape-allegation-jordaan-re-elected-safrica-soccer-boss-ap_sportse89c99a3f2954689943a0302208e4daf"
-       //         "https://www.usnews.com/news/world/articles/2018-05-27/south-africas-opposition-rejects-report-that-party-will-split"
-       //  "https://www.10news.com/newsy/at-least-22-people-dead-14-injured-after-3vehicle-crash-in-uganda"
-           //     "http://www.cnbc.com/2017/03/28/apple-iphone-suppliers-outlook-jpmorgan.html"
-
-              //  "https://www.theatlantic.com/international/archive/2017/03/donald-trump-china-rachman/521055/",
-              //  "http://www.express.co.uk/news/uk/784786/marine-a-sentence-reduced-seven-years-alexander-blackman-law-crime"
-        };
-
-        TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
-            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                return null;
-            }
-
-            public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-            }
-
-            public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-            }
-        } };
-
-
-        // Install the all-trusting trust manager
-        SSLContext sc = SSLContext.getInstance("SSL");
-        sc.init(null, trustAllCerts, new java.security.SecureRandom());
-        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-        final String USER_AGENT = "Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6";
-
-        System.setProperty("javax.net.debug", "all");
-        for (String u : urls) {
-            logger.info(u);
-            try {
-
-                long start = System.currentTimeMillis();
-                Document doc = Jsoup.connect(u)
-                        .followRedirects(true)
-                        .referrer("http://www.google.com")
-                        .userAgent(USER_AGENT)
-                        .ignoreContentType(true)
-                        .timeout(10000)
-                        .method(Connection.Method.GET)
-                        .get();
-
-                long took = System.currentTimeMillis() - start;
-                logger.info("fetched in {}", took);
-                ArticleBodyResolver abr = new ArticleBodyResolver(doc, 1);
-                abr.analyze3();
-                List<Element> elems = abr.getText();
-                for (Element e : elems) logger.info(e.tagName() + " | " + e.text());
-
-            } catch (Exception e) {
-                StringWriter sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw);
-                e.printStackTrace(pw);
-                String sStackTrace = sw.toString();
-                logger.error("Error: " + sStackTrace);
-            }
-        }
-    }
-
 }
