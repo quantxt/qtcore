@@ -14,16 +14,15 @@ import com.quantxt.interval.Interval;
 import com.quantxt.types.DictSearch;
 import lombok.Getter;
 import lombok.Setter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
-import com.google.gson.Gson;
 import com.quantxt.helper.types.ExtInterval;
 
 import static com.quantxt.helper.types.QTField.QTFieldType.*;
 
 @Getter
 @Setter
+@Slf4j
 public abstract class QTDocument {
 
     public enum Language {
@@ -44,9 +43,6 @@ public abstract class QTDocument {
         Headline, Action, Statement, Aux, Speculation,
         Legal, Acquisition, Production, Partnership, Employment, Development
     }
-
-    private static Gson gson = new Gson();
-    private static Logger logger = LoggerFactory.getLogger(QTDocument.class);
 
     protected String title;
     protected String englishTitle;
@@ -371,9 +367,4 @@ public abstract class QTDocument {
         list.add(e);
         entity.put(t, list);
     }
-
-    public String toString() {
-        return gson.toJson(this);
-    }
-
 }

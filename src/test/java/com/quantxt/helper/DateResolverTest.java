@@ -1,6 +1,7 @@
 package com.quantxt.helper;
 
 import com.quantxt.helper.types.ExtIntervalSimple;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.Ignore;
@@ -17,9 +18,8 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by matin on 5/24/17.
  */
+@Slf4j
 public class DateResolverTest {
-
-    private static Logger logger = LoggerFactory.getLogger(ArticleBodyResolverTest.class);
 
     @Test
     public void gulfTimes_1() {
@@ -240,7 +240,7 @@ public class DateResolverTest {
             Document doc = Jsoup.parse(in,"UTF-8" , "");
             return doc;
         } catch (Exception e){
-            logger.error(e.getMessage());
+            log.error(e.getMessage());
         }
         return null;
     }
