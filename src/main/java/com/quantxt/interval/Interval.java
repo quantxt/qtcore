@@ -50,7 +50,7 @@ public class Interval implements Intervalable {
      * Answers whether the given interval overlaps this interval
      * instance.
      *
-     * @param other
+     * @param other Other interval to compare for overlap
      * @return true The intervals overlap.
      */
     public boolean overlapsWith(final Interval other) {
