@@ -1,7 +1,5 @@
 package com.quantxt.doc;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -34,10 +32,6 @@ public abstract class QTDocument {
     public enum CHUNK {
         LINE, BULLET, SENTENCE, PARAGRAPH, PAGE, NONE
     }
-
-    final private static int MAX_Key_Length = 150;
-
-    final private static DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");//
 
     public enum DOCTYPE {
         Headline, Action, Statement, Aux, Speculation,
@@ -74,10 +68,6 @@ public abstract class QTDocument {
     }
 
     // Getters
-
-    public synchronized String getDateStr() {
-        return dateFormat.format(date);
-    }
 
     public abstract List<QTDocument> getChunks(CHUNK chunking);
 
@@ -216,7 +206,7 @@ public abstract class QTDocument {
             sb.append("<tr>");
             sb.append("<td>").append(ext.getKey()).append("</td>");
             for (ExtIntervalSimple extvStr : ext.getExtIntervalSimples()) {
-                sb.append("<td>").append(extvStr.getCustomData().toString()).append("</td>");
+                sb.append("<td>").append(extvStr.getCustomData()).append("</td>");
             }
             sb.append("</tr>");
             String row2add = sb.toString();
