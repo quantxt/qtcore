@@ -2,6 +2,7 @@ package com.quantxt.helper.types;
 
 import com.quantxt.interval.Interval;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
@@ -20,11 +21,13 @@ public class ExtIntervalSimple extends Interval {
     private Short shortValue;
     private String customData;
 
-    public ExtIntervalSimple(int start, int end) {
-        super(start, end);
-
+    public ExtIntervalSimple(){
+        super();
     }
 
+    public ExtIntervalSimple(int start, int end){
+        super(start, end);
+    }
 
     public String toString(String str){
         return str.substring(start, end);
