@@ -17,7 +17,6 @@ import java.util.regex.Pattern;
 
 @Getter
 @Setter
-
 public  class Dictionary implements Serializable {
 
     private static final long serialVersionUID = -5854156830214968792L;
