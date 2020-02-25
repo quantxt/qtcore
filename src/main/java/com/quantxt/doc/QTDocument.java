@@ -12,7 +12,6 @@ import com.quantxt.interval.Interval;
 import com.quantxt.types.DictSearch;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 
 import com.quantxt.helper.types.ExtInterval;
 
@@ -20,7 +19,6 @@ import static com.quantxt.helper.types.QTField.QTFieldType.*;
 
 @Getter
 @Setter
-@Slf4j
 public abstract class QTDocument {
 
     public enum Language {
@@ -69,23 +67,24 @@ public abstract class QTDocument {
 
     // Getters
 
-    public abstract List<QTDocument> getChunks(CHUNK chunking);
+    public abstract List<QTDocument> getChunks(CHUNK chunk);
 
     public abstract String Translate(String text, Language inLang, Language outLang);
 
     public abstract boolean isStatement(String s);
 
     public void extractKeyValues(DictSearch<QTMatch> dictSearch,
+                                 boolean vertical_overlap,
                                  String pre_context)
     {
         QTField.QTFieldType valueType = dictSearch.getDictionary().getValType();
         final String rawSent_curr = title;
-        Collection<QTMatch> name_match_curr = dictSearch.search(title);
-        if (name_match_curr.size() == 0) return;
+        Collection<QTMatch> qtMatches = dictSearch.search(title);
+        if (qtMatches.size() == 0) return;
 
         // for non-typed dictionaries
         if (valueType == null || valueType == NONE){
-            for (QTMatch qtMatch : name_match_curr) {
+            for (QTMatch qtMatch : qtMatches) {
                 String matching_string = qtMatch.getCustomData();
                 String match_group = qtMatch.getGroup();
                 addEntity(match_group, matching_string);
@@ -95,8 +94,7 @@ public abstract class QTDocument {
 
         ArrayList<ExtIntervalSimple> values = new ArrayList<>();
         // get potential values
-        if (valueType == DOUBLE || valueType == FLOAT || valueType == INT ||
-                valueType == SHORT || valueType == MONEY || valueType == PERCENT) {
+        if (valueType == DOUBLE || valueType == MONEY || valueType == PERCENT) {
             if (!(title.contains("0") || title.contains("1") || title.contains("2") || title.contains("3") ||
                     title.contains("4") || title.contains("5") || title.contains("6") || title.contains("7") ||
                     title.contains("8") || title.contains("9"))) {
@@ -109,10 +107,10 @@ public abstract class QTDocument {
             } else if (valueType == STRING ) {
                 ArrayList<ExtIntervalSimple> rowValues = new ArrayList<>();
                 ExtIntervalSimple extIntervalSimple = new ExtIntervalSimple(0, title.length() - 1);
-                extIntervalSimple.setStringValue(title);
-                extIntervalSimple.setCustomData(title);
+                extIntervalSimple.setStringValue(title.replaceAll(" +", " ").trim());
+                extIntervalSimple.setCustomData(title.replaceAll(" +", " ").trim());
                 rowValues.add(extIntervalSimple);
-                for (QTMatch qtMatch : name_match_curr) {
+                for (QTMatch qtMatch : qtMatches) {
                     String keyGroup = qtMatch.getGroup();
                     String key = qtMatch.getCustomData();
                     ExtInterval extInterval = new ExtInterval();
@@ -127,7 +125,31 @@ public abstract class QTDocument {
             } else if (valueType == KEYWORD) {
                 Pattern regex = dictSearch.getDictionary().getPattern();
                 int[] groups = dictSearch.getDictionary().getGroups();
-                helper.getPatternValues(rawSent_curr, pre_context, regex, groups, values);
+        //        helper.getPatternValues(rawSent_curr, pre_context, regex, groups, values);
+
+                int strLength = rawSent_curr.length();
+                for (QTMatch qtMatch : qtMatches) {
+                    ArrayList<ExtIntervalSimple> partial_values = new ArrayList<>();
+                    int qtMatchEnd = qtMatch.getEnd();
+                    // look up to 5000 characters after this
+            //        Pattern gapBetweenKeyAndValue =  dictSearch.getDictionary().getSkip_between_key_and_value().
+                    int lookupLength = Math.min(5000, strLength - qtMatchEnd);
+                    String str_to_apply_regex = rawSent_curr.substring(qtMatchEnd, qtMatchEnd + lookupLength-1);
+                    helper.getPatternValues(str_to_apply_regex, pre_context, regex, groups, partial_values);
+                    if (partial_values.size() == 0) continue;
+                    for (ExtIntervalSimple extIntervalSimple : partial_values){
+                        //shift the values by qtMatchEnd
+                        int shiftedStart = extIntervalSimple.getStart() + qtMatchEnd;
+                        int shiftedEnd = extIntervalSimple.getEnd() + qtMatchEnd;
+                        ExtIntervalSimple extIntervalSimpleShifted = new ExtIntervalSimple(shiftedStart, shiftedEnd);
+                        extIntervalSimpleShifted.setDatetimeValue(extIntervalSimple.getDatetimeValue());
+                        extIntervalSimpleShifted.setStringValue(extIntervalSimple.getStringValue());
+                        extIntervalSimpleShifted.setCustomData(extIntervalSimple.getCustomData());
+                        extIntervalSimpleShifted.setDoubleValue(extIntervalSimple.getDoubleValue());
+                        extIntervalSimpleShifted.setIntValue(extIntervalSimple.getIntValue());
+                        values.add(extIntervalSimpleShifted);
+                    }
+                }
             } else if (valueType == NOUN || valueType == VERB) {
                 List<String> tokens = helper.tokenize(rawSent_curr);
                 String[] parts = tokens.toArray(new String[tokens.size()]);
@@ -144,9 +166,9 @@ public abstract class QTDocument {
 
         ArrayList<Interval> all_key_values = new ArrayList<>();
         all_key_values.addAll(values);
-        all_key_values.addAll(name_match_curr);
+        all_key_values.addAll(qtMatches);
 
-        all_key_values.sort((Interval s1, Interval s2)->s1.getStart()-s2.getStart());
+        Collections.sort(all_key_values, Comparator.comparingInt(Interval::getStart));
 
         Pattern padding_between_values = dictSearch.getDictionary().getSkip_between_values();
         Pattern padding_between_key_value = dictSearch.getDictionary().getSkip_between_key_and_value();
@@ -157,48 +179,126 @@ public abstract class QTDocument {
             Interval interval_1 = all_key_values.get(i);
             if (!(interval_1 instanceof QTMatch)) continue;
             QTMatch qtKeyMatch = (QTMatch) interval_1;
+
             ArrayList<ExtIntervalSimple> rowValues = new ArrayList<>();
 
             for (int j=i+1; j<total_intervals; j++) {
                 Interval interval_2 = all_key_values.get(j);
-                if (!(interval_2 instanceof ExtIntervalSimple)) break;
+                boolean isValidInterval = interval_2 instanceof ExtIntervalSimple;
+                boolean isMatchingBetweenKeyAndVlaue = rowValues.size() == 0;
 
-                ExtIntervalSimple extIntervalSimple_current = (ExtIntervalSimple) interval_2;
+                Pattern pattern_to_run_on_gap = isMatchingBetweenKeyAndVlaue ? padding_between_key_value : padding_between_values;
+                String gap;
 
-                String gap_between_key_and_value = rawSent_curr.substring(interval_1.getEnd(), interval_2.getStart());
-                Pattern pattern_to_run_on_gap = rowValues.size() == 0 ? padding_between_key_value
-                        : padding_between_values;
-                Matcher k = pattern_to_run_on_gap.matcher(gap_between_key_and_value);
-                if (!k.find()) continue;
-                rowValues.add(extIntervalSimple_current);
-                interval_1 = interval_2;
+                if (vertical_overlap){
+                    if (!isValidInterval) continue;
+                    gap = getVerticalGep(interval_1, interval_2, title);
+                    if (gap == null) {
+                        gap = getHorizentalGap(interval_1, interval_2, title);
+                    }
+                } else {
+                    if (!isValidInterval) break;
+                    gap = getHorizentalGap(interval_1, interval_2, title);
+                }
+
+                gap = gap.replaceAll(" +", " ");
+                Matcher matcher = pattern_to_run_on_gap.matcher(gap);
+                if ( (gap.isEmpty() && vertical_overlap )|| matcher.find() ) {
+                    ExtIntervalSimple extIntervalSimple_current = (ExtIntervalSimple) interval_2;
+                    rowValues.add(extIntervalSimple_current);
+                    interval_1 = interval_2;
+                } else {
+                    //If we are finding more than one value AND the gap between value_n ane value_n+1 is not valid then stop here
+                    if (!isMatchingBetweenKeyAndVlaue) break;
+                }
             }
 
             if (rowValues.size() == 0) continue;
 
             if (this.values == null) this.values = new ArrayList<>();
 
-
             ExtInterval extInterval = new ExtInterval();
             extInterval.setKeyGroup(qtKeyMatch.getGroup());
             extInterval.setKey(qtKeyMatch.getCustomData());
             extInterval.setExtIntervalSimples(rowValues);
+            extInterval.setStart(qtKeyMatch.getStart());
+            extInterval.setEnd(qtKeyMatch.getEnd());
             this.values.add(extInterval);
             addEntity(qtKeyMatch.getGroup(), qtKeyMatch.getCustomData());
         }
     }
 
+    //   --- Interval 1      -------
+    //         | Vertical   |
+    //         |    Gap     |
+    //   ------ Interval 2       ---
+
+    protected String getHorizentalGap(Interval interval1, Interval interval2, String str){
+        return str.substring(interval1.getEnd(), interval2.getStart());
+    }
+
+    protected String getVerticalGep(Interval interval1, Interval interval2, String str){
+
+        StringBuilder sb = new StringBuilder();
+        int offsetStartInterval1 = getOffsetFromLineStart(str, interval1.getStart());
+        int offsetStartInterval2 = getOffsetFromLineStart(str, interval2.getStart());
+
+        int length1 = interval1.getEnd() - interval1.getStart();
+        int length2 = interval2.getEnd() - interval2.getStart();
+
+        int offsetEndInterval1 = offsetStartInterval1 + length1;
+        int offsetEndInterval2 = offsetStartInterval2 + length2;
+
+        //find indices of the vertical column for the gap
+        int startGapIndex = Math.min(offsetStartInterval1, offsetStartInterval2);
+        int endGapIndex   = Math.max(offsetEndInterval1, offsetEndInterval2);
+
+        // if there is no overlap then return null
+        // allow vetically stacked blocks not to be exactly aligned
+        if ((endGapIndex - startGapIndex) >= (length1 + length2 + 4)) return null;
+
+        String [] linesBetween = str.substring(interval1.getStart(), interval2.getEnd()).split("\n");
+
+        for (int i=1; i<linesBetween.length-1; i++){
+            String line = linesBetween[i];
+            int endidx = Math.min(endGapIndex, line.length());
+            if (endidx > startGapIndex ) {
+                String gap = line.substring(startGapIndex, endidx);
+                sb.append(gap).append(" ").append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    protected int getOffsetFromLineStart(String str, int index){
+        return index - str.substring(0, index).lastIndexOf('\n') -1;
+    }
+
+    private ExtIntervalSimple getAdjustPageBasedExtraction(ExtIntervalSimple extIntervalSimple){
+        //adjust start and end to be offset from beginning of the line
+        // beginning of the line:
+        int currentStart = extIntervalSimple.getStart();
+        int currentEnd = extIntervalSimple.getEnd();
+        int lineStart = title.substring(0,currentStart).lastIndexOf('\n');
+        ExtIntervalSimple adjustedExtIntervalSimple = new ExtIntervalSimple(currentStart - lineStart, currentEnd -lineStart);
+        adjustedExtIntervalSimple.setStringValue(extIntervalSimple.getStringValue());
+        adjustedExtIntervalSimple.setDoubleValue(extIntervalSimple.getDoubleValue());
+        adjustedExtIntervalSimple.setType(extIntervalSimple.getType());
+        adjustedExtIntervalSimple.setCustomData(extIntervalSimple.getCustomData());
+        adjustedExtIntervalSimple.setIntValue(extIntervalSimple.getIntValue());
+        adjustedExtIntervalSimple.setDatetimeValue(extIntervalSimple.getDatetimeValue());
+
+        return adjustedExtIntervalSimple;
+    }
+
+    public void sortValues(){
+        if (this.values == null) return;
+        Collections.sort(this.values, Comparator.comparingInt(ExtInterval::getStart));
+    }
+
     public void convertValues2titleTable() {
         if (this.values == null) return;
-
-        Collections.sort(this.values, new Comparator<ExtInterval>() {
-            public int compare(ExtInterval p1, ExtInterval p2) {
-                Integer s1 = p1.getExtIntervalSimples().get(0).getStart();
-                Integer s2 = p2.getExtIntervalSimples().get(0).getStart();
-                return s1.compareTo(s2);
-            }
-        });
-
+        sortValues();
         LinkedHashSet<String> rows = new LinkedHashSet<>();
         for (ExtInterval ext : this.values) {
 
@@ -206,7 +306,9 @@ public abstract class QTDocument {
             sb.append("<tr>");
             sb.append("<td>").append(ext.getKey()).append("</td>");
             for (ExtIntervalSimple extvStr : ext.getExtIntervalSimples()) {
-                sb.append("<td>").append(extvStr.getCustomData()).append("</td>");
+                String customData = extvStr.getCustomData();
+                if (customData == null) continue;
+                sb.append("<td>").append(customData).append("</td>");
             }
             sb.append("</tr>");
             String row2add = sb.toString();

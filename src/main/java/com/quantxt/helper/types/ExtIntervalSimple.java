@@ -1,24 +1,16 @@
 package com.quantxt.helper.types;
 
 import com.quantxt.interval.Interval;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
+import com.quantxt.helper.types.QTField.QTFieldType;
 import java.time.LocalDateTime;
 
-
-@Getter
-@Setter
 public class ExtIntervalSimple extends Interval {
 
-    private QTField.QTFieldType type;
+    private QTFieldType type;
     private Double doubleValue;
-    private Float floatValue;
     private Long intValue;
     private LocalDateTime datetimeValue;
     private String stringValue;
-    private Short shortValue;
     private String customData;
 
     public ExtIntervalSimple(){
@@ -33,4 +25,34 @@ public class ExtIntervalSimple extends Interval {
         return str.substring(start, end);
     }
 
+    public QTFieldType getType() { return type; }
+    public Double getDoubleValue(){return doubleValue;}
+    public Long getIntValue(){return intValue;}
+    public LocalDateTime getDatetimeValue(){return datetimeValue;}
+    public String getStringValue(){return stringValue;}
+    public String getCustomData(){return customData;}
+
+    public void setType(QTFieldType type){
+        this.type = type;
+    }
+
+    public void setCustomData(String customData) {
+        this.customData = customData;
+    }
+
+    public void setDatetimeValue(LocalDateTime datetimeValue) {
+        this.datetimeValue = datetimeValue;
+    }
+
+    public void setDoubleValue(Double doubleValue) {
+        this.doubleValue = doubleValue;
+    }
+
+    public void setIntValue(Long intValue) {
+        this.intValue = intValue;
+    }
+
+    public void setStringValue(String stringValue) {
+        this.stringValue = stringValue;
+    }
 }
