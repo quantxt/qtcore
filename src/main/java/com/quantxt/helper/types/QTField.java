@@ -1,17 +1,18 @@
 package com.quantxt.helper.types;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
 
 @Getter
 @Setter
-@NoArgsConstructor
 public class QTField {
-    public enum QTFieldType {SHORT, INT, LONG, FLOAT, DOUBLE, STRING, KEYWORD, BOOL, DATETIME,
-        NOUN, VERB, PERCENT, MONEY, NONE}
+    public enum QTFieldType {INT, SHORT, LONG, DOUBLE, STRING, KEYWORD, DATETIME, NOUN, VERB, PERCENT, MONEY, NONE}
+
+    public QTField(){
+
+    }
 
     /*
     Full name of the data field
@@ -103,6 +104,7 @@ public class QTField {
     Field has an array of nested childern
      */
     protected QTField [] fields;
+
 
     public void setIsFilter(boolean s){
         isFilter = s;

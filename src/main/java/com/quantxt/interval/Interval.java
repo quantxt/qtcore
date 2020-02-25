@@ -1,12 +1,9 @@
 package com.quantxt.interval;
 
-import lombok.Getter;
-
-@Getter
 public class Interval {
 
-    final protected int start;
-    final protected int end;
+    protected int start;
+    protected int end;
 
     public Interval(){
         this.start = -1;
@@ -18,6 +15,17 @@ public class Interval {
         this.end = end;
     }
 
+    public int getEnd(){
+        return end;
+    }
+
+    public int getStart(){
+        return start;
+    }
+
+    public void setStart(int start){this.start = start;}
+    public void setEnd(int end){this.end = end;}
+
     public int size() {
         return end - start + 1;
     }
@@ -25,10 +33,6 @@ public class Interval {
     public boolean overlapsWith(final Interval other) {
         return this.start <= other.getEnd() &&
                 this.end >= other.getStart();
-    }
-
-    public boolean overlapsWith(int point) {
-        return this.start <= point && point <= this.end;
     }
 
     @Override
