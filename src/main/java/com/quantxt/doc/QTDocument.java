@@ -78,7 +78,6 @@ public abstract class QTDocument {
                                  String pre_context)
     {
         QTField.QTFieldType valueType = dictSearch.getDictionary().getValType();
-        final String rawSent_curr = title;
         Collection<QTMatch> qtMatches = dictSearch.search(title);
         if (qtMatches.size() == 0) return;
 
@@ -100,10 +99,10 @@ public abstract class QTDocument {
                     title.contains("8") || title.contains("9"))) {
                 return;
             }
-            helper.getValues(rawSent_curr, pre_context, values);
+            helper.getValues(title, pre_context, values);
         } else {
             if (valueType == DATETIME) {
-                helper.getDatetimeValues(rawSent_curr, pre_context, values);
+                helper.getDatetimeValues(title, pre_context, values);
             } else if (valueType == STRING ) {
                 ArrayList<ExtIntervalSimple> rowValues = new ArrayList<>();
                 ExtIntervalSimple extIntervalSimple = new ExtIntervalSimple(0, title.length() - 1);
@@ -127,14 +126,14 @@ public abstract class QTDocument {
                 int[] groups = dictSearch.getDictionary().getGroups();
         //        helper.getPatternValues(rawSent_curr, pre_context, regex, groups, values);
 
-                int strLength = rawSent_curr.length();
+                int strLength = title.length();
                 for (QTMatch qtMatch : qtMatches) {
                     ArrayList<ExtIntervalSimple> partial_values = new ArrayList<>();
                     int qtMatchEnd = qtMatch.getEnd();
                     // look up to 5000 characters after this
             //        Pattern gapBetweenKeyAndValue =  dictSearch.getDictionary().getSkip_between_key_and_value().
                     int lookupLength = Math.min(5000, strLength - qtMatchEnd);
-                    String str_to_apply_regex = rawSent_curr.substring(qtMatchEnd, qtMatchEnd + lookupLength-1);
+                    String str_to_apply_regex = title.substring(qtMatchEnd, qtMatchEnd + lookupLength-1);
                     helper.getPatternValues(str_to_apply_regex, pre_context, regex, groups, partial_values);
                     if (partial_values.size() == 0) continue;
                     for (ExtIntervalSimple extIntervalSimple : partial_values){
@@ -151,9 +150,9 @@ public abstract class QTDocument {
                     }
                 }
             } else if (valueType == NOUN || valueType == VERB) {
-                List<String> tokens = helper.tokenize(rawSent_curr);
+                List<String> tokens = helper.tokenize(title);
                 String[] parts = tokens.toArray(new String[tokens.size()]);
-                List<ExtIntervalSimple> nounAndVerbs = helper.getNounAndVerbPhrases(rawSent_curr, parts);
+                List<ExtIntervalSimple> nounAndVerbs = helper.getNounAndVerbPhrases(title, parts);
                 for (ExtIntervalSimple ext : nounAndVerbs){
                     if (valueType == ext.getType() ){
                         values.add(ext);
