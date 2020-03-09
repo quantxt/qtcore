@@ -8,7 +8,7 @@ import java.util.ArrayList;
 @Getter
 @Setter
 public class QTField {
-    public enum QTFieldType {INT, SHORT, LONG, DOUBLE, STRING, KEYWORD, DATETIME, NOUN, VERB, PERCENT, MONEY, NONE}
+    public enum QTFieldType {INT, SHORT, LONG, FLOAT, DOUBLE, STRING, KEYWORD, DATETIME, NOUN, VERB, PERCENT, MONEY, NONE}
 
     public QTField(){
 
