@@ -6,6 +6,8 @@ import java.util.regex.Pattern;
 
 import com.quantxt.doc.QTDocument.DOCTYPE;
 import com.quantxt.helper.types.ExtIntervalSimple;
+import com.quantxt.helper.types.QTMatch;
+import com.quantxt.types.DictSearch;
 
 public interface QTDocumentHelper {
 

@@ -10,6 +10,7 @@ import java.util.ArrayList;
 
 public class ExtInterval extends Interval {
 
+    private QTField.QTFieldType type;
     private String key;
     private String keyGroup;
     private ArrayList<ExtIntervalSimple> extIntervalSimples;
@@ -34,6 +35,8 @@ public class ExtInterval extends Interval {
         return extIntervalSimples;
     }
 
+    public QTField.QTFieldType getType() { return type; }
+
     public void setKey(String key){
         this.key = key;
     }
@@ -45,4 +48,9 @@ public class ExtInterval extends Interval {
     public void setExtIntervalSimples(ArrayList<ExtIntervalSimple> extIntervalSimples){
         this.extIntervalSimples = extIntervalSimples;
     }
+
+    public void setType(QTField.QTFieldType type){
+        this.type = type;
+    }
+
 }
