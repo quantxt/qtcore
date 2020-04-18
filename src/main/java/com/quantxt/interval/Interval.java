@@ -5,6 +5,8 @@ public class Interval {
     protected int start;
     protected int end;
 
+    protected Integer line;
+
     public Interval(){
         this.start = -1;
         this.end = Integer.MAX_VALUE;
@@ -15,6 +17,13 @@ public class Interval {
         this.end = end;
     }
 
+    public void setStart(int start){this.start = start;}
+    public void setEnd(int end){this.end = end;}
+
+    public void setLine(int line){
+        this.line = line;
+    }
+
     public int getEnd(){
         return end;
     }
@@ -23,8 +32,9 @@ public class Interval {
         return start;
     }
 
-    public void setStart(int start){this.start = start;}
-    public void setEnd(int end){this.end = end;}
+    public Integer getLine(){
+        return line;
+    }
 
     public int size() {
         return end - start + 1;

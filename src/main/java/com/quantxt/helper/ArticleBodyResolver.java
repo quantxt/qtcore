@@ -1,7 +1,6 @@
 package com.quantxt.helper;
 
 import com.quantxt.types.MapSort;
-import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
@@ -9,13 +8,17 @@ import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import org.jsoup.select.NodeTraversor;
 import org.jsoup.select.NodeVisitor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 
 /**
  * Created by matin on 3/26/17.
  */
-@Slf4j
 public class ArticleBodyResolver {
+
+    final private static Logger log = LoggerFactory.getLogger(ArticleBodyResolver.class);
 
     public static Set<String> NO_TEXT_TAGS = new HashSet<>(Arrays.asList("h1", "caption", "cite", "h2", "audio", "script", "nav", "iframe", "embed", "footer", "form", "figcaption", "img", "video", "figure"));
     public static String PUNCS = "。.!?؟¿¡";
