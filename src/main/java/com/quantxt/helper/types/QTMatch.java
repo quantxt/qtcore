@@ -1,8 +1,6 @@
 package com.quantxt.helper.types;
 
 import com.quantxt.interval.Interval;
-import lombok.Getter;
-import lombok.Setter;
 
 
 public class QTMatch extends Interval {

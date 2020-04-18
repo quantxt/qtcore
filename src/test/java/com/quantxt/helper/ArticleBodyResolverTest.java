@@ -1,13 +1,10 @@
 package com.quantxt.helper;
 
-import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.util.List;
@@ -20,7 +17,6 @@ import static org.junit.Assert.assertTrue;
  * Created by matin on 3/29/17.
  */
 
-@Slf4j
 public class ArticleBodyResolverTest {
 
     @Test
@@ -341,7 +337,7 @@ public class ArticleBodyResolverTest {
 
             return abr.getExtractions();
         } catch (Exception e){
-            log.error(e.getMessage());
+            e.printStackTrace();
         }
         return null;
     }
@@ -354,7 +350,7 @@ public class ArticleBodyResolverTest {
             abr.analyze3();
             return abr;
         } catch (Exception e){
-            log.error(e.getMessage());
+            e.printStackTrace();
         }
         return null;
     }

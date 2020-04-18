@@ -1,13 +1,10 @@
 package com.quantxt.helper;
 
 import com.quantxt.helper.types.ExtIntervalSimple;
-import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -18,7 +15,6 @@ import static org.junit.Assert.assertTrue;
 /**
  * Created by matin on 5/24/17.
  */
-@Slf4j
 public class DateResolverTest {
 
     @Test
@@ -240,7 +236,7 @@ public class DateResolverTest {
             Document doc = Jsoup.parse(in,"UTF-8" , "");
             return doc;
         } catch (Exception e){
-            log.error(e.getMessage());
+            e.printStackTrace();
         }
         return null;
     }
