@@ -4,7 +4,6 @@ import com.quantxt.helper.types.DateStrHelper;
 import com.quantxt.helper.types.ExtIntervalSimple;
 import com.quantxt.helper.types.QTField;
 import com.quantxt.types.MapSort;
-import lombok.extern.slf4j.Slf4j;
 import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -18,12 +17,16 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Created by matin on 3/22/17.
  */
 
-@Slf4j
 public class DateResolver {
+
+    final private static Logger log = LoggerFactory.getLogger(DateResolver.class);
 
     final private static String EnglishShortMonths = "(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)";
     private final static List<DateStrHelper> DATE_PATTERN_MAP = new ArrayList<>();
@@ -422,20 +425,5 @@ public class DateResolver {
             return null;
         }
         return getBestMatch(allDates);
-    }
-
-    public static void main(String[] args) throws Exception {
-   //     String txt  = "FW: Interprint Inc; Morten Enterprises Inc - Wind Submission; Eff 7/15/2018";
-        String txt = "InceptionPortfolio Benchmark (Annualized) Asset Class Composition (Net market value, as of 10/31/18) Fund Performance External: Local: Sovereign 68% Sovereign 2% The Fund returned -2.67% (net I-shares) in October, underperforming the Quasi Sovereign 10% Quasi Sovereign 0% benchmark by 51 bps.";
-        LocalDateTime dt = DateResolver.resolveDateStr(txt);
-        ArrayList<ExtIntervalSimple> vals = DateResolver.resolveDate(txt);
-
-    //    Document doc = Jsoup.connect("https://www.sec.gov/Archives/edgar/data/34088/000003408817000041/xom10q2q2017.htm").get();
-    //    dt = DateResolver.resolveDate(doc);
-        if (dt != null) {
-            log.info(dt.toString());
-        } else {
-            log.info("Date was not found");
-        }
     }
 }

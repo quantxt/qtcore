@@ -1,13 +1,8 @@
 package com.quantxt.types;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.io.Serializable;
 import java.util.Collection;
 
-@Getter
-@Setter
 public abstract class DictSearch<T> implements Serializable {
 
     private static final long serialVersionUID = 3935799515300870082L;
@@ -26,4 +21,28 @@ public abstract class DictSearch<T> implements Serializable {
     protected Dictionary dictionary;
 
     public abstract Collection<T> search(final String query_string);
+
+    public void setAnalyzType(AnalyzType[] analyzType) {
+        this.analyzType = analyzType;
+    }
+
+    public void setDictionary(Dictionary dictionary) {
+        this.dictionary = dictionary;
+    }
+
+    public void setMode(Mode[] mode) {
+        this.mode = mode;
+    }
+
+    public AnalyzType[] getAnalyzType() {
+        return analyzType;
+    }
+
+    public Dictionary getDictionary() {
+        return dictionary;
+    }
+
+    public Mode[] getMode() {
+        return mode;
+    }
 }
