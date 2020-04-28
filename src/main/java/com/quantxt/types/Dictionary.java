@@ -18,8 +18,7 @@ public  class Dictionary implements Serializable {
     private static final long serialVersionUID = -5854156830214968792L;
 
     final private static Pattern default_skip_between_value = Pattern.compile("^\\s+$");
-    final private static Pattern default_skip_between_key_and_value = Pattern.compile("^[\\s\"'\\(\\)\\-\\:;%,]+$");
-
+    final private static Pattern default_skip_between_key_and_value = Pattern.compile("^[\\s\"'\\/\\\\\\.\\(\\)\\-\\_\\&\\%\\~\\?\\@\\$\\:;%,]+$");
 
     final private Map<String, List<DictItm>> vocab_map;
     final protected String name;

@@ -13,7 +13,7 @@ public abstract class DictSearch<T> implements Serializable {
     }
 
     public enum AnalyzType {
-        EXACT, EXACT_CI, WHITESPACE, SIMPLE, STANDARD, STEM
+        EXACT, EXACT_CI, WHITESPACE, LETTER, SIMPLE, STANDARD, STEM
     }
 
     protected Mode [] mode = new Mode [] {Mode.ORDERED_SPAN};
