@@ -5,6 +5,24 @@ import java.util.ArrayList;
 public class QTField {
     public enum QTFieldType {INT, SHORT, LONG, FLOAT, DOUBLE, STRING, KEYWORD, DATETIME, NOUN, VERB, PERCENT, MONEY, NONE}
 
+    public enum HtmlParseMode {
+        RAW("RAW"),
+        SMART("SMART"),
+        PLAIN("PLAIN"),
+        HTML("HTML");
+
+        private final String mode;
+
+        HtmlParseMode(String mode) {
+            this.mode = mode;
+        }
+
+        public String toString() {
+            return mode;
+        }
+
+    }
+
     public QTField(){
 
     }
@@ -100,6 +118,12 @@ public class QTField {
      */
     protected QTField [] fields;
 
+    /*
+    How to pull text out of HTML components
+     */
+    protected HtmlParseMode htmlToTextParseMode = HtmlParseMode.PLAIN;
+
+
     public boolean isSortByName() {
         return isSortByName;
     }
@@ -162,6 +186,10 @@ public class QTField {
 
     public String getLevel() {
         return level;
+    }
+
+    public HtmlParseMode getHtmlToTextParseMode() {
+        return htmlToTextParseMode;
     }
 
     public void setSname(String sname) {
@@ -242,5 +270,9 @@ public class QTField {
 
     public boolean isFilter() {
         return isFilter;
+    }
+
+    public void setHtmlToTextParseMode(HtmlParseMode htmlToTextParseMode) {
+        this.htmlToTextParseMode = htmlToTextParseMode;
     }
 }
