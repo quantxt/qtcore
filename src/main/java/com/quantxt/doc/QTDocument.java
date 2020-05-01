@@ -18,7 +18,7 @@ public abstract class QTDocument {
     }
 
     protected String title;
-    protected String body;
+    protected List<String> body;
     protected Language language;
     private LocalDateTime date;
     private String link;
@@ -36,6 +36,13 @@ public abstract class QTDocument {
 
 
     public QTDocument(String b, String t, QTDocumentHelper helper) {
+        title = t;
+        body = new ArrayList<>();
+        body.add(b);
+        this.helper = helper;
+    }
+
+    public QTDocument(List<String> b, String t, QTDocumentHelper helper) {
         title = t;
         body = b;
         this.helper = helper;
@@ -135,7 +142,7 @@ public abstract class QTDocument {
         return date;
     }
 
-    public String getBody() {
+    public List<String> getBody() {
         return body;
     }
 
@@ -159,7 +166,7 @@ public abstract class QTDocument {
         return source;
     }
 
-    public void setBody(String body) {
+    public void setBody(List<String> body) {
         this.body = body;
     }
 
