@@ -40,7 +40,7 @@ public class QTField {
     /*
     Is the field aggregable?
      */
-    protected boolean isFilter;
+    protected boolean filter;
 
     /*
     This field processed by a Value; mostly for KEYWORD and STRING fields
@@ -56,7 +56,7 @@ public class QTField {
     /*
     Sort by name or count
      */
-    protected boolean isSortByName;
+    protected boolean sortByName;
 
     /*
     Type of data field
@@ -125,7 +125,7 @@ public class QTField {
 
 
     public boolean isSortByName() {
-        return isSortByName;
+        return sortByName;
     }
 
     public boolean isHasValue() {
@@ -161,7 +161,7 @@ public class QTField {
     }
 
     public void setFilter(boolean filter) {
-        isFilter = filter;
+        this.filter = filter;
     }
 
     public ArrayList<String[]> getRegexReplace() {
@@ -209,7 +209,7 @@ public class QTField {
     }
 
     public void setSortByName(boolean sortByName) {
-        isSortByName = sortByName;
+        this.sortByName = sortByName;
     }
 
     public void setPath(String path) {
@@ -269,7 +269,7 @@ public class QTField {
     }
 
     public boolean isFilter() {
-        return isFilter;
+        return filter;
     }
 
     public void setHtmlToTextParseMode(HtmlParseMode htmlToTextParseMode) {
