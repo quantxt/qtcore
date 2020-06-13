@@ -1,8 +1,7 @@
 package com.quantxt.helper;
 
-import com.quantxt.helper.types.DateStrHelper;
-import com.quantxt.helper.types.ExtIntervalSimple;
-import com.quantxt.helper.types.QTField;
+import com.quantxt.types.ExtIntervalSimple;
+import com.quantxt.types.QTField;
 import com.quantxt.types.MapSort;
 import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.Document;
@@ -359,9 +358,9 @@ public class DateResolver {
                 if (has_overalp) continue;
                 starts.add(date_start_index);
                 ends.add(date_str_end_index);
-                ext.setType(QTField.QTFieldType.DATETIME);
+                ext.setType(QTField.DataType.DATETIME);
                 ext.setDatetimeValue(dr.date);
-                ext.setCustomData(m.group(1));
+                ext.setStr(m.group(1));
                 dates_found.add(ext);
             }
         }
@@ -425,5 +424,15 @@ public class DateResolver {
             return null;
         }
         return getBestMatch(allDates);
+    }
+
+    private static class DateStrHelper {
+        public Pattern pattern;
+        public int[] digits;
+
+        public DateStrHelper(Pattern p , int [] d){
+            pattern = p;
+            digits = d;
+        }
     }
 }
