@@ -1,9 +1,10 @@
-package com.quantxt.helper.types;
+package com.quantxt.types;
 
 import java.util.ArrayList;
 
 public class QTField {
-    public enum QTFieldType {INT, SHORT, LONG, FLOAT, DOUBLE, STRING, KEYWORD, DATETIME, NOUN, VERB, PERCENT, MONEY, NONE}
+
+    public enum DataType {LONG, KEYWORD, DATETIME, STRING, DOUBLE, PERCENT, MONEY, VERB, NOUN}
 
     public enum HtmlParseMode {
         RAW("RAW"),
@@ -61,7 +62,7 @@ public class QTField {
     /*
     Type of data field
      */
-    protected QTFieldType type = QTFieldType.NONE;
+    protected DataType type;
 
     /*
     Extraction path in source
@@ -140,7 +141,7 @@ public class QTField {
         return translate2En;
     }
 
-    public QTFieldType getType() {
+    public DataType getType() {
         return type;
     }
 
@@ -260,7 +261,7 @@ public class QTField {
         this.splitter = splitter;
     }
 
-    public void setType(QTFieldType type) {
+    public void setType(DataType type) {
         this.type = type;
     }
 
