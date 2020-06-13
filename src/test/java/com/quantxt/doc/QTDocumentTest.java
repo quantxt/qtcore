@@ -1,6 +1,6 @@
 package com.quantxt.doc;
 
-import com.quantxt.interval.Interval;
+import com.quantxt.types.Interval;
 import org.junit.Assert;
 import org.junit.Test;
 

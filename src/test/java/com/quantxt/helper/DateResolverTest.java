@@ -1,6 +1,6 @@
 package com.quantxt.helper;
 
-import com.quantxt.helper.types.ExtIntervalSimple;
+import com.quantxt.types.ExtIntervalSimple;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.Ignore;
@@ -210,7 +210,7 @@ public class DateResolverTest {
         ArrayList<ExtIntervalSimple> dates = DateResolver.resolveDate(str);
         assertTrue("Expected " + ed1 + " but was " + dates.get(0).getDatetimeValue(), dates.get(0).getDatetimeValue().equals(ed1));
         assertTrue("Expected " + ed2 + " but was " + dates.get(1).getDatetimeValue(), dates.get(1).getDatetimeValue().equals(ed2));
-        assertTrue("Expected September 24, 2017" + " but was " + dates.get(3).getCustomData() , dates.get(3).getCustomData().equals("September 24, 2017"));
+        assertTrue("Expected September 24, 2017" + " but was " + dates.get(3).getStr() , dates.get(3).getStr().equals("September 24, 2017"));
 
     }
 
