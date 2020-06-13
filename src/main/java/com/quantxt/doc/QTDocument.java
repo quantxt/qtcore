@@ -3,9 +3,9 @@ package com.quantxt.doc;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import com.quantxt.helper.types.ExtIntervalSimple;
+import com.quantxt.types.ExtIntervalSimple;
 
-import com.quantxt.helper.types.ExtInterval;
+import com.quantxt.types.ExtInterval;
 
 public abstract class QTDocument {
 
@@ -69,9 +69,9 @@ public abstract class QTDocument {
 
             StringBuilder sb = new StringBuilder();
             sb.append("<tr>");
-            sb.append("<td>").append(ext.getKey()).append("</td>");
+            sb.append("<td>").append(ext.getCategory()).append("</td>");
             for (ExtIntervalSimple extvStr : ext.getExtIntervalSimples()) {
-                String customData = extvStr.getCustomData();
+                String customData = extvStr.getStr();
                 if (customData == null) continue;
                 sb.append("<td>").append(customData).append("</td>");
             }

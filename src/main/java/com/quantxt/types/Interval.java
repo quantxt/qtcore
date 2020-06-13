@@ -1,10 +1,10 @@
-package com.quantxt.interval;
+package com.quantxt.types;
 
 public class Interval {
 
     protected int start;
     protected int end;
-
+    private String str;
     protected Integer line;
 
     public Interval(){
@@ -24,6 +24,10 @@ public class Interval {
         this.line = line;
     }
 
+    public String getStr() {
+        return str;
+    }
+
     public int getEnd(){
         return end;
     }
@@ -34,6 +38,14 @@ public class Interval {
 
     public Integer getLine(){
         return line;
+    }
+
+    public void setStr(String str) {
+        this.str = str;
+    }
+
+    public void setLine(Integer line) {
+        this.line = line;
     }
 
     public int size() {
