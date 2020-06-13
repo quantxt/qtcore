@@ -7,36 +7,36 @@ import java.util.List;
 public class DictItm implements Serializable {
     private static final long serialVersionUID = -1878032088113144067L;
 
-    private String key;
-    private List<String> value;
+    private String category;
+    private List<String> phraseList;
 
     public DictItm(String k, List<String> v){
-        key = k;
-        value = v;
+        category = k;
+        phraseList = v;
     }
 
-    public String getKey(){
-        return key;
+    public String getCategory(){
+        return category;
     }
 
-    public List<String> getValue(){
-        return value;
+    public List<String> getPhraseList(){
+        return phraseList;
     }
 
-    public void setKey(String key){
-        this.key = key;
+    public void setCategory(String category){
+        this.category = category;
     }
 
-    public void setValue(List<String> value){
-        this.value = value;
+    public void setPhraseList(List<String> phraseList){
+        this.phraseList = phraseList;
     }
 
-    public DictItm(String k, String v1, String... values){
-        key = k;
-        value = new ArrayList<>();
-        value.add(v1);
+    public DictItm(String category, String v1, String... values){
+        this.category = category;
+        this.phraseList = new ArrayList<>();
+        this.phraseList.add(v1);
         for (String v : values){
-            value.add(v);
+            this.phraseList.add(v);
         }
     }
 
