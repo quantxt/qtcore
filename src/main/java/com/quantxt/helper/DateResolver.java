@@ -34,7 +34,7 @@ public class DateResolver {
     final private static String DAY_STR = "([0123][0-9]|[1-9])";
     final private static String MONTH_STR = "([01][0-9]|[1-9])";
     final private static String YEAR_STR = "([12]\\d{3})";   // 4 digit year
-    final private static String YEAR_SHORT = "([01]\\d|[6789]\\d)";  // 2 digit year
+    final private static String YEAR_SHORT = "([012]\\d|[6789]\\d)";  // 2 digit year
 
 
     final private static Pattern MonthFormat = Pattern.compile(EnglishShortMonths, Pattern.CASE_INSENSITIVE);
@@ -68,8 +68,6 @@ public class DateResolver {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm z"),
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm'Z'")
     };
-
-    private static DateTimeFormatter date_formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     private LocalDateTime date;
     private int length;
