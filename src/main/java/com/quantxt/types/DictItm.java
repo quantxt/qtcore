@@ -6,6 +6,7 @@ import java.util.List;
 
 public class DictItm implements Serializable {
     private static final long serialVersionUID = -1878032088113144067L;
+    public static String DONT_CARE = "__DONTCARE__";
 
     private String category;
     private List<String> phraseList;
