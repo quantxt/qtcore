@@ -22,6 +22,8 @@ public abstract class DictSearch<T> implements Serializable {
 
     public abstract Collection<T> search(final String query_string);
 
+    public abstract Collection<T> search(final String query_string, int slop);
+
     public void setAnalyzType(AnalyzType[] analyzType) {
         this.analyzType = analyzType;
     }

@@ -70,16 +70,6 @@ public class QTField {
     protected String path;
 
     /*
-    Translate to English
-     */
-    protected boolean translate2En;
-
-    /*
-    Autodetect the type
-     */
-    protected boolean autoDetect;
-
-    /*
     Name of mapping file that should be applied on extractions
      */
     protected String mapping;
@@ -124,7 +114,6 @@ public class QTField {
      */
     protected HtmlParseMode htmlToTextParseMode = HtmlParseMode.PLAIN;
 
-
     public boolean isSortByName() {
         return sortByName;
     }
@@ -135,10 +124,6 @@ public class QTField {
 
     public int getNumBuckets() {
         return numBuckets;
-    }
-
-    public boolean isTranslate2En() {
-        return translate2En;
     }
 
     public DataType getType() {
@@ -155,10 +140,6 @@ public class QTField {
 
     public String getPath() {
         return path;
-    }
-
-    public void setAutoDetect(boolean autoDetect) {
-        this.autoDetect = autoDetect;
     }
 
     public void setFilter(boolean filter) {
@@ -217,10 +198,6 @@ public class QTField {
         this.path = path;
     }
 
-    public void setTranslate2En(boolean translate2En) {
-        this.translate2En = translate2En;
-    }
-
     public String getMapping() {
         return mapping;
     }
@@ -263,10 +240,6 @@ public class QTField {
 
     public void setType(DataType type) {
         this.type = type;
-    }
-
-    public boolean isAutoDetect() {
-        return autoDetect;
     }
 
     public boolean isFilter() {

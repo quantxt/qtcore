@@ -4,8 +4,6 @@ import com.quantxt.types.Interval;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.List;
-
 public class QTDocumentTest {
 
     @Test
@@ -32,19 +30,5 @@ public class QTDocumentTest {
             super(b, t, helper);
         }
 
-        @Override
-        public List<QTDocument> getChunks(CHUNK chunk) {
-            return null;
-        }
-
-        @Override
-        public String Translate(String text, Language inLang, Language outLang) {
-            return null;
-        }
-
-        @Override
-        public boolean isStatement(String s) {
-            return false;
-        }
     }
 }

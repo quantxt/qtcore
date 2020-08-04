@@ -24,6 +24,7 @@ public  class Dictionary implements Serializable {
     final protected String name;
     final protected String id;
     protected ExtractionType valType;
+    protected QTField.DataType dataType;
     protected Pattern pattern;
     protected Pattern skip_between_values;
     protected Pattern skip_between_key_and_value;
@@ -93,6 +94,10 @@ public  class Dictionary implements Serializable {
         return id;
     }
 
+    public QTField.DataType getDataType() {
+        return dataType;
+    }
+
     public void setPattern(Pattern pattern) {
         this.pattern = pattern;
     }
@@ -111,5 +116,9 @@ public  class Dictionary implements Serializable {
 
     public void setValType(ExtractionType valType) {
         this.valType = valType;
+    }
+
+    public void setDataType(QTField.DataType dataType) {
+        this.dataType = dataType;
     }
 }

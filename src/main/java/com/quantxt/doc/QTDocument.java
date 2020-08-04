@@ -7,14 +7,14 @@ import com.quantxt.types.ExtIntervalSimple;
 
 import com.quantxt.types.ExtInterval;
 
-public abstract class QTDocument {
+public class QTDocument {
 
     public enum Language {
         ENGLISH, SPANISH, GERMAN, FRENCH, ARABIC, RUSSIAN, FARSI, JAPANESE, PORTUGUESE
     }
 
     public enum CHUNK {
-        LINE, BULLET, SENTENCE, PARAGRAPH, PAGE, NONE
+        LINE, SENTENCE, PAGE, NONE
     }
 
     protected String title;
@@ -48,13 +48,10 @@ public abstract class QTDocument {
         this.helper = helper;
     }
 
-    // Getters
-
-    public abstract List<QTDocument> getChunks(CHUNK chunk);
-
-    public abstract String Translate(String text, Language inLang, Language outLang);
-
-    public abstract boolean isStatement(String s);
+    // implement this
+    public List<QTDocument> getChunks(CHUNK chunk){
+        return null;
+    }
 
     public void sortValues(){
         if (this.values == null) return;
