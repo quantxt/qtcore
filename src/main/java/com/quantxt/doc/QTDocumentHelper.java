@@ -14,10 +14,6 @@ public interface QTDocumentHelper {
 
     String[] getPosTags(String[] text);
 
-    boolean isSentence(String str, List<String> tokens);
-
-    Set<String> getStopwords();
-
     String extractHtmlExcerptForDocument(QTDocument qtDocument);
 
     String getValues(String orig, String context, List<ExtIntervalSimple> list);
