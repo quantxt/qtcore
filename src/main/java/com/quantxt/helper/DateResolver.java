@@ -88,9 +88,6 @@ public class DateResolver {
 
     public static LocalDateTime resolveDate(Document doc) {
         LocalDateTime date = resolveDateHelper(doc);
-    //    if (date != null){
-    //        date = date.(ZoneOffset.UTC);
-    //    }
         return date;
     }
 
@@ -204,8 +201,8 @@ public class DateResolver {
     }
 
     private static DateResolver normalizeDateStr(String date_string,
-                                      Matcher m,
-                                      int [] vals)
+                                                  Matcher m,
+                                                  int [] vals)
     {
         StringBuilder jsutDateStr = new StringBuilder();
         // check the day and month numbers are valid

@@ -14,7 +14,7 @@ public class QTDocument {
     }
 
     public enum CHUNK {
-        LINE, BULLET, SENTENCE, PARAGRAPH, PAGE, NONE
+        LINE, SENTENCE, PAGE, NONE
     }
 
     protected String title;
