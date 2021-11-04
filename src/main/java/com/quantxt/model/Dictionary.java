@@ -1,4 +1,4 @@
-package com.quantxt.types;
+package com.quantxt.model;
 
 import java.io.Serializable;
 import java.util.List;
@@ -15,7 +15,7 @@ public  class Dictionary implements Serializable {
 
     private static final long serialVersionUID = -5854156830214968792L;
 
-    public enum ExtractionType {NUMBER, DATETIME, REGEX };
+    public enum ExtractionType {NUMBER, DATETIME, REGEX};
 
     final private List<DictItm> vocab; // category to str s
     final protected String name;

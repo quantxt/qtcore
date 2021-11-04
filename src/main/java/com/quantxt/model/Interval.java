@@ -1,4 +1,4 @@
-package com.quantxt.types;
+package com.quantxt.model;
 
 public class Interval {
 
