@@ -3,9 +3,7 @@ package com.quantxt.doc;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import com.quantxt.types.ExtIntervalSimple;
-
-import com.quantxt.types.ExtInterval;
+import com.quantxt.model.ExtInterval;
 
 public class QTDocument {
 
@@ -13,27 +11,17 @@ public class QTDocument {
         ENGLISH, SPANISH, GERMAN, FRENCH, ARABIC, RUSSIAN, FARSI, JAPANESE, PORTUGUESE
     }
 
-    public enum CHUNK {
-        LINE, SENTENCE, PAGE, NONE
-    }
-
     protected String title;
     protected List<String> body;
     protected Language language;
     private LocalDateTime date;
     private String link;
-    private double score;
     private int position;
     private String source;
     private String id;
     private ArrayList<ExtInterval> values;
 
     protected transient QTDocumentHelper helper;
-
-    //TODO: all these should be combined into a generic class
-    private List<String> tags;
-    private Map<String, List<String>> entity;
-
 
     public QTDocument(String b, String t, QTDocumentHelper helper) {
         title = t;
@@ -48,79 +36,8 @@ public class QTDocument {
         this.helper = helper;
     }
 
-    // implement this
-    public List<QTDocument> getChunks(CHUNK chunk){
-        return null;
-    }
-
-    public void sortValues(){
-        if (this.values == null) return;
-        Collections.sort(this.values, Comparator.comparingInt(ExtInterval::getStart));
-    }
-
-    public void convertValues2titleTable() {
-        if (this.values == null) return;
-        sortValues();
-        LinkedHashSet<String> rows = new LinkedHashSet<>();
-        for (ExtInterval ext : this.values) {
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("<tr>");
-            sb.append("<td>").append(ext.getCategory()).append("</td>");
-            for (ExtIntervalSimple extvStr : ext.getExtIntervalSimples()) {
-                String customData = extvStr.getStr();
-                if (customData == null) continue;
-                sb.append("<td>").append(customData).append("</td>");
-            }
-            sb.append("</tr>");
-            String row2add = sb.toString();
-            rows.add(row2add);
-        }
-
-        if (!rows.isEmpty()) {
-            if (!title.startsWith("<table ")) {
-                title = "";
-            }
-            title += "<table width=\"100%\">" + String.join("", rows) + "</table>";
-        } else {
-            if (!title.startsWith("<table ")) {
-                title = "";
-            }
-        }
-    }
-
-    public void addTags(List<String> taglist) {
-        tags.addAll(taglist);
-    }
-
-    public void addTag(String tag) {
-        if (tags == null){
-            tags = new ArrayList<>();
-        }
-        tags.add(tag);
-    }
-
-    public void addEntity(String t, String e) {
-        List<String> list;
-        if (entity == null) {
-            entity = new HashMap<>();
-            list = new ArrayList<>();
-        } else {
-            list = entity.get(t);
-            if (list == null) {
-                list = new ArrayList<>();
-            }
-        }
-        list.add(e);
-        entity.put(t, list);
-    }
-
     public String getLink() {
         return link;
-    }
-
-    public double getScore() {
-        return score;
     }
 
     public String getTitle() {
@@ -151,10 +68,6 @@ public class QTDocument {
         return id;
     }
 
-    public List<String> getTags() {
-        return tags;
-    }
-
     public QTDocumentHelper getHelper() {
         return helper;
     }
@@ -165,10 +78,6 @@ public class QTDocument {
 
     public void setBody(List<String> body) {
         this.body = body;
-    }
-
-    public void setScore(double score) {
-        this.score = score;
     }
 
     public void setDate(LocalDateTime date) {
@@ -195,24 +104,12 @@ public class QTDocument {
         this.helper = helper;
     }
 
-    public Map<String, List<String>> getEntity() {
-        return entity;
-    }
-
-    public void setEntity(Map<String, List<String>> entity) {
-        this.entity = entity;
-    }
-
     public void setSource(String source) {
         this.source = source;
     }
 
     public void setId(String id) {
         this.id = id;
-    }
-
-    public void setTags(List<String> tags) {
-        this.tags = tags;
     }
 
     public void setValues(ArrayList<ExtInterval> values) {

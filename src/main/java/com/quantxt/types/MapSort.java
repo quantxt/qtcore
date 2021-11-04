@@ -11,14 +11,7 @@ public class MapSort {
     {
         List<Map.Entry<K, V>> list =
                 new LinkedList<>( map.entrySet() );
-        Collections.sort( list, new Comparator<Map.Entry<K, V>>()
-        {
-            @Override
-            public int compare( Map.Entry<K, V> o1, Map.Entry<K, V> o2 )
-            {
-                return ( o1.getValue() ).compareTo( o2.getValue() );
-            }
-        } );
+        Collections.sort( list, Comparator.comparing(Map.Entry::getValue));
 
         LinkedHashMap<K, V> result = new LinkedHashMap<>();
         for (Map.Entry<K, V> entry : list)
@@ -32,14 +25,7 @@ public class MapSort {
     {
         List<Map.Entry<K, V>> list =
                 new LinkedList<>( map.entrySet() );
-        Collections.sort( list, new Comparator<Map.Entry<K, V>>()
-        {
-            @Override
-            public int compare( Map.Entry<K, V> o1, Map.Entry<K, V> o2 )
-            {
-                return -1 * ( o1.getValue() ).compareTo( o2.getValue() );
-            }
-        } );
+        Collections.sort( list, (o1, o2) -> -1 * ( o1.getValue() ).compareTo( o2.getValue() ));
 
         LinkedHashMap<K, V> result = new LinkedHashMap<>();
         for (Map.Entry<K, V> entry : list)
