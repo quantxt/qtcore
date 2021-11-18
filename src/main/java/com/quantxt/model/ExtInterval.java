@@ -1,6 +1,6 @@
 package com.quantxt.model;
 
-import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by matin on 5/20/17.
@@ -12,7 +12,7 @@ public class ExtInterval extends Interval {
     private String category;
     private String dict_name;
     private String dict_id;
-    private ArrayList<ExtIntervalSimple> extIntervalSimples;
+    private List<Interval> extIntervalSimples;
 
     public ExtInterval() {
         super();
@@ -34,7 +34,7 @@ public class ExtInterval extends Interval {
         return category;
     }
 
-    public ArrayList<ExtIntervalSimple> getExtIntervalSimples(){
+    public List<Interval> getExtIntervalSimples(){
         return extIntervalSimples;
     }
 
@@ -52,7 +52,7 @@ public class ExtInterval extends Interval {
         this.category = category;
     }
 
-    public void setExtIntervalSimples(ArrayList<ExtIntervalSimple> extIntervalSimples){
+    public void setExtIntervalSimples(List<Interval> extIntervalSimples){
         this.extIntervalSimples = extIntervalSimples;
     }
 

@@ -15,8 +15,6 @@ public class SearchConfiguration {
     protected String id;
     protected String userId;
     protected String username;
-    protected String log_stream;
-    protected String out_stream;
 
     protected Integer numWorkers;
 
@@ -39,20 +37,12 @@ public class SearchConfiguration {
         return numWorkers;
     }
 
-    public String getLog_stream() {
-        return log_stream;
-    }
-
     public String getUserId() {
         return userId;
     }
 
     public QTField[] getFields() {
         return fields;
-    }
-
-    public String getOut_stream() {
-        return out_stream;
     }
 
     public QTSearchDictionary[] getSearchDictionaries() {
@@ -70,11 +60,6 @@ public class SearchConfiguration {
         return this;
     }
 
-    public SearchConfiguration setLog_stream(String log_stream) {
-        this.log_stream = log_stream;
-        return this;
-    }
-
     public SearchConfiguration setUserId(String userId) {
         this.userId = userId;
         return this;
@@ -82,11 +67,6 @@ public class SearchConfiguration {
 
     public SearchConfiguration setFields(QTField[] fields) {
         this.fields = fields;
-        return this;
-    }
-
-    public SearchConfiguration setOut_stream(String out_stream) {
-        this.out_stream = out_stream;
         return this;
     }
 

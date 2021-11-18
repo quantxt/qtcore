@@ -1,7 +1,7 @@
 package com.quantxt.model.search;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.quantxt.model.document.TextBox;
+import com.quantxt.model.document.BaseTextBox;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -27,10 +27,10 @@ public class SearchDocument {
      * File original name.
      */
     private String fileName;
-    /**
-     * URI to the file.
-     */
+
+
     private String link;
+
     /**
      * Search document content input stream.
      */
@@ -41,25 +41,21 @@ public class SearchDocument {
      */
     @JsonIgnore
     private List<String> body;
-    /**
-     * Document UTC date.
-     */
-    private LocalDateTime date;
+
     /**
      * File content type.
      */
     private String contentType;
-    /**
-     * Source name.
-     */
-    private String source;
+
+    private String [] langs;
+
     /**
      * number of text unit : number of pages for paginated documents
      * and number of characters / 3000 for the rest
      */
     private int numUnits;
 
-    private List<List<TextBox>> textBoxes;
+    private List<List<BaseTextBox>> textBoxes;
 
     public String[] getLangs() {
         return langs;
@@ -69,22 +65,12 @@ public class SearchDocument {
         this.langs = langs;
     }
 
-    private String [] langs;
-
     public SearchDocument(){
 
     }
 
-    public String getLink() {
-        return link;
-    }
-
     public String getUuid() {
         return uuid;
-    }
-
-    public String getSource() {
-        return source;
     }
 
     public List<String> getBody() {
@@ -97,10 +83,6 @@ public class SearchDocument {
 
     public String getContentType() {
         return contentType;
-    }
-
-    public LocalDateTime getDate() {
-        return date;
     }
 
     public String getFileName() {
@@ -116,20 +98,12 @@ public class SearchDocument {
         return this;
     }
 
-    public SearchDocument setSource(String source) {
-        this.source = source;
-        return this;
-    }
 
     public SearchDocument setUsername(String username) {
         this.username = username;
         return this;
     }
 
-    public SearchDocument setDate(LocalDateTime date) {
-        this.date = date;
-        return this;
-    }
 
     public SearchDocument setContentType(String contentType) {
         this.contentType = contentType;
@@ -143,11 +117,6 @@ public class SearchDocument {
 
     public SearchDocument setUuid(String uuid) {
         this.uuid = uuid;
-        return this;
-    }
-
-    public SearchDocument setLink(String link) {
-        this.link = link;
         return this;
     }
 
@@ -165,11 +134,11 @@ public class SearchDocument {
         return false;
     }
 
-    public List<List<TextBox>> getTextBoxes() {
+    public List<List<BaseTextBox>> getTextBoxes() {
         return textBoxes;
     }
 
-    public void setTextBoxes(List<List<TextBox>> textBoxes) {
+    public void setTextBoxes(List<List<BaseTextBox>> textBoxes) {
         this.textBoxes = textBoxes;
     }
 
@@ -188,5 +157,13 @@ public class SearchDocument {
 
     public void setNumUnits(int numUnits) {
         this.numUnits = numUnits;
+    }
+
+    public String getLink() {
+        return link;
+    }
+
+    public void setLink(String link) {
+        this.link = link;
     }
 }

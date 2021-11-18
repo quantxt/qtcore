@@ -1,6 +1,5 @@
 package com.quantxt.model.search;
 
-import com.quantxt.doc.QTDocument;
 import com.quantxt.model.DictSearch;
 import com.quantxt.model.Dictionary;
 import com.quantxt.model.QTField;
@@ -17,8 +16,6 @@ public class QTSearchDictionary {
 
     protected Dictionary.ExtractionType vocabValueType;
     protected QTField.DataType dataType;
-
-    protected QTDocument.Language language = QTDocument.Language.ENGLISH;
 
     protected List<String> stopwordList;
     protected List<String> synonymList;
@@ -40,7 +37,6 @@ public class QTSearchDictionary {
                               String vocabName,
                               Dictionary.ExtractionType vocabValueType,
                               QTField.DataType dataType,
-                              QTDocument.Language language,
                               List<String> stopwordList,
                               List<String> synonymList,
                               DictSearch.Mode searchMode,
@@ -54,7 +50,6 @@ public class QTSearchDictionary {
         this.vocabName = vocabName;
         this.vocabValueType = vocabValueType;
         this.dataType = dataType;
-        this.language = language;
         this.stopwordList = stopwordList;
         this.synonymList = synonymList;
         this.searchMode = searchMode;
@@ -63,10 +58,6 @@ public class QTSearchDictionary {
         this.skipPatternBetweenValues = skipPatternBetweenValues;
         this.phraseMatchingPattern = phraseMatchingPattern;
         this.phraseMatchingGroups = phraseMatchingGroups;
-    }
-
-    public QTDocument.Language getLanguage() {
-        return language;
     }
 
     public List<String> getStopwordList() {
@@ -169,11 +160,6 @@ public class QTSearchDictionary {
 
     public QTSearchDictionary setPhraseMatchingGroups(String[] phraseMatchingGroups) {
         this.phraseMatchingGroups = phraseMatchingGroups;
-        return this;
-    }
-
-    public QTSearchDictionary setLanguage(QTDocument.Language language) {
-        this.language = language;
         return this;
     }
 
