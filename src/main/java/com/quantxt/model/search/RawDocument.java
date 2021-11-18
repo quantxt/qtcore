@@ -6,14 +6,9 @@ import java.util.List;
 public class RawDocument implements Cloneable, Serializable {
     private static final long serialVersionUID = 2923554776254897664L;
 
-    private String title;
     private List<String> body;
     private String source;
     private String link;
-
-    public String getTitle() {
-        return title;
-    }
 
     public List<String> getBody() {
         return body;
@@ -29,10 +24,6 @@ public class RawDocument implements Cloneable, Serializable {
 
     public void setBody(List<String> body) {
         this.body = body;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
     }
 
     public void setSource(String source) {
