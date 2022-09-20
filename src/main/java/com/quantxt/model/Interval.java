@@ -4,7 +4,7 @@ public class Interval {
 
     protected int start;
     protected int end;
-    private String str;
+    protected String str;
     protected Integer line;
 
     public Interval(){
@@ -79,5 +79,13 @@ public class Interval {
         Interval other = (Interval) o;
         int comparison = this.start - other.getStart();
         return comparison != 0 ? comparison : this.end - other.getEnd();
+    }
+
+    @Override
+    public String toString() {
+        return "start=" + start +
+                ", end=" + end +
+                ", str='" + str +
+                ", line=" + line;
     }
 }
