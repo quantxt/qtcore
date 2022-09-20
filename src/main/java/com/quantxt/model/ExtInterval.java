@@ -60,4 +60,15 @@ public class ExtInterval extends Interval {
         this.type = type;
     }
 
+
+    @Override
+    public String toString() {
+        return "category='" + category +
+                ", dict_name='" + dict_name +
+                ", dict_id='" + dict_id +
+                ", start=" + start +
+                ", str=" + str +
+                ", end=" + end +
+                ", line=" + line;
+    }
 }
