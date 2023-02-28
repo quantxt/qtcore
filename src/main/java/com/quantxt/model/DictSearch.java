@@ -23,6 +23,8 @@ public abstract class DictSearch<T, E> implements Serializable {
     protected AnalyzType [] analyzType = new AnalyzType[] {AnalyzType.STANDARD};
     protected Dictionary dictionary;
 
+    protected Dictionary negativeDictionary;
+
     public abstract Collection<T> search(final String query_string);
 
     public abstract Collection<T> search(final String query_string, int slop);
@@ -35,6 +37,10 @@ public abstract class DictSearch<T, E> implements Serializable {
 
     public void setDictionary(Dictionary dictionary) {
         this.dictionary = dictionary;
+    }
+
+    public void setNegativeDictionary(Dictionary dictionary) {
+        this.negativeDictionary = dictionary;
     }
 
     public void setMode(Mode[] mode) {
