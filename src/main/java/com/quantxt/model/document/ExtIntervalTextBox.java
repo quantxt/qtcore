@@ -2,14 +2,19 @@ package com.quantxt.model.document;
 
 import com.quantxt.model.ExtInterval;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ExtIntervalTextBox {
 
     final private ExtInterval extInterval;
-    private BaseTextBox textBox;
-
     public ExtIntervalTextBox(ExtInterval e, BaseTextBox tb){
         extInterval = e;
-        textBox = tb;
+        if (tb != null) {
+            List<BaseTextBox> bts = new ArrayList<>();
+            bts.add(tb);
+            extInterval.setTextBoxes(bts);
+        }
     }
 
     public ExtInterval getExtInterval() {
@@ -17,11 +22,16 @@ public class ExtIntervalTextBox {
     }
 
     public BaseTextBox getTextBox() {
-        return textBox;
+        if (extInterval.getTextBoxes() == null) return null;
+        return extInterval.getTextBoxes().get(0);
     }
 
-    public void setTextBox(BaseTextBox textBox) {
-        this.textBox = textBox;
+    public void setTextBox(BaseTextBox tb) {
+        if (tb != null) {
+            List<BaseTextBox> bts = new ArrayList<>();
+            bts.add(tb);
+            extInterval.setTextBoxes(bts);
+        }
     }
 
 }

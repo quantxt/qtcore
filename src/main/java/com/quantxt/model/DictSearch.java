@@ -4,6 +4,7 @@ import com.quantxt.model.document.BaseTextBox;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 public abstract class DictSearch<T, E> implements Serializable {
@@ -54,6 +55,9 @@ public abstract class DictSearch<T, E> implements Serializable {
     public Dictionary getDictionary() {
         return dictionary;
     }
+    public abstract List<E> postSearch(boolean hasTextboxes);
+
+    public abstract void reset();
 
     public Mode[] getMode() {
         return mode;
