@@ -6,6 +6,7 @@ import java.util.List;
 
 public class Interval {
 
+    private IntervalID id;
     protected int start;
     protected int end;
     protected String str;
@@ -110,5 +111,15 @@ public class Interval {
                 ", end=" + end +
                 ", str='" + str +
                 ", line=" + line;
+    }
+
+    private static class IntervalID {
+        int id_start;
+        int id_end;
+
+        public IntervalID(int s, int e, int line){
+            id_start = 10000*line + s;
+            id_end = 10000*line + e;
+        }
     }
 }
