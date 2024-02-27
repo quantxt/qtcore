@@ -19,6 +19,9 @@ public class BaseTextBox implements Serializable {
     protected float right; // endx
     protected String str;
 
+    protected float width;   // starty
+    protected float height;  // endy
+
     protected transient List<BaseTextBox> childs = new ArrayList<>();
     protected transient String line_str;
 
@@ -138,5 +141,21 @@ public class BaseTextBox implements Serializable {
 
     public void setLine_str(String line_str) {
         this.line_str = line_str;
+    }
+
+    public float getWidth() {
+        return width;
+    }
+
+    public void setWidth(float width) {
+        this.width = width;
+    }
+
+    public float getHeight() {
+        return height;
+    }
+
+    public void setHeight(float height) {
+        this.height = height;
     }
 }
